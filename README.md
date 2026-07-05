@@ -1,9 +1,7 @@
-# Interaction Nets Sandbox
+
+![Splash art](examples_images/splashart.jpeg)
 
 An interactive, in-browser playground to explore and play with **Interaction Nets**, based on Yves Lafont's interaction combinators. 
-
-
----
 
 ## Current Features
 
