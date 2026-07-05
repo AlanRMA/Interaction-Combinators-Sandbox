@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Interactive sandbox for Lafont-style interaction nets — n-ary agents, fast reduction, group selection, reusable blocks.">
+<title>Interaction nets — sandbox</title>
+<style>
+  :root {
+    --bg: #08080B;
+    --panel: #101014;
+    --line: #26262E;
+    --ink: #E8E8EC;
+    --dim: #8B8B96;
+    --gamma: #7C9EF5;
+    --gamma-bg: #16203C;
+    --delta: #F0A45C;
+    --delta-bg: #35220E;
+    --eps: #9AA3AC;
+    --eps-bg: #1C1F23;
+    --active: #F26D6D;
+    --active-bg: #331214;
+    --sel: #C7F07C;
+    --r: 8px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: Georgia, 'Times New Roman', serif;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+  h1 { font-size: 17px; font-weight: normal; margin: 0 10px 0 0; letter-spacing: 0.02em; white-space: nowrap; }
+  h1 .sym { color: var(--gamma); font-style: italic; }
+
+  button, input[type=number] {
+    font-family: 'Courier New', monospace; font-size: 12.5px;
+    background: transparent; color: var(--dim);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+  input[type=number] { width: 58px; cursor: text; color: var(--ink); padding: 6px 6px 6px 10px; }
+  button:hover { color: var(--ink); border-color: var(--dim); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--gamma); outline-offset: 2px; }
+  .b-gamma { color: var(--gamma); border-color: #2A3A5E; }
+  .b-gamma:hover { border-color: var(--gamma); color: var(--gamma); background: var(--gamma-bg); }
+  .b-delta { color: var(--delta); border-color: #4A3418; }
+  .b-delta:hover { border-color: var(--delta); color: var(--delta); background: var(--delta-bg); }
+  .b-eps { color: var(--eps); border-color: #2C3136; }
+  .b-eps:hover { border-color: var(--eps); background: var(--eps-bg); }
+  .b-go { color: var(--ink); }
+  .b-go.running { color: var(--active); border-color: var(--active); }
+  .spacer { flex: 1; }
+  .arity-wrap { display: inline-flex; align-items: center; gap: 5px; color: var(--dim);
+                font-family: 'Courier New', monospace; font-size: 12px; }
+  #info-btn {
+    width: 26px; height: 26px; border-radius: 50%;
+    font-family: Georgia, serif; font-style: italic; font-size: 14px;
+    padding: 0; line-height: 1;
+  }
+
+  #info {
+    position: absolute; top: 54px; right: 16px; z-index: 10;
+    max-width: 490px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 14px 18px;
+    font-size: 13px; line-height: 1.7; color: var(--dim);
+    display: none;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+  }
+  #info.open { display: block; }
+  #info b { color: var(--ink); font-weight: 600; }
+  #info .g { color: var(--gamma); } #info .d { color: var(--delta); }
+  #info .e { color: var(--eps); }  #info .a { color: var(--active); }
+  #info .s { color: var(--sel); }
+  #info p { margin: 0 0 8px; } #info p:last-child { margin: 0; }
+  #info kbd {
+    font-family: 'Courier New', monospace; font-size: 11px;
+    border: 1px solid var(--line); border-radius: 4px;
+    padding: 1px 5px; color: var(--ink); background: var(--bg);
+  }
+
+  main { flex: 1; display: flex; min-height: 0; }
+
+  #board-wrap { flex: 1; position: relative; min-width: 0; }
+  #board {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    background:
+      radial-gradient(circle, rgba(255,255,255,0.14) 1px, transparent 1.4px) 0 0 / 26px 26px,
+      #060608;
+    touch-action: none;
+    user-select: none;
+  }
+
+  aside {
+    width: 270px;
+    border-left: 1px solid var(--line);
+    display: flex; flex-direction: column;
+    min-height: 0;
+    background: var(--panel);
+  }
+  .tabs { display: flex; border-bottom: 1px solid var(--line); }
+  .tab {
+    flex: 1; border: none; border-radius: 0; background: transparent;
+    padding: 10px 0 8px;
+    font-family: Georgia, serif; font-style: italic; font-size: 12px;
+    color: var(--dim);
+  }
+  .tab.on { color: var(--ink); border-bottom: 2px solid var(--gamma); }
+  .pane { display: none; }
+  .pane.on { display: block; }
+  #hist, #saved {
+    flex: 1; overflow-y: auto;
+    padding: 8px 14px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px; line-height: 1.8;
+    color: var(--dim);
+  }
+  #hist.on, #saved.on { display: block; }
+
+  /* saved nets list */
+  .net-item {
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+  }
+  .net-item:hover { border-color: var(--dim); }
+  .net-item .nm { color: var(--ink); display: flex; align-items: center; gap: 6px; }
+  .net-item .nm .del {
+    margin-left: auto; border: none; background: transparent; padding: 0 2px;
+    color: var(--dim); font-size: 13px; line-height: 1;
+  }
+  .net-item .nm .del:hover { color: var(--active); }
+  .net-item .meta { font-size: 11px; color: var(--dim); }
+  .net-item .meta .g { color: var(--gamma); } .net-item .meta .d { color: var(--delta); }
+  .net-item .meta .e { color: var(--eps); }
+  .net-item.builtin { border-style: solid; opacity: 0.85; }
+  .net-item.blockitem { border-style: dashed; border-color: #2A3A5E; }
+  .saved-sec {
+    font-family: Georgia, serif; font-style: italic; font-size: 11px;
+    color: var(--dim); margin: 6px 0 6px; opacity: 0.8;
+  }
+  #saved:empty::before { content: var(--i18n-saved-empty, 'nothing saved yet'); font-style: italic; opacity: 0.5; }
+  #hist div { border-left: 2px solid var(--line); padding-left: 8px; margin-bottom: 2px; }
+  #hist div.last { color: var(--ink); border-left-color: var(--gamma); }
+  #hist:empty::before { content: var(--i18n-hist-empty, 'no reductions yet'); font-style: italic; opacity: 0.5; }
+
+  .rail {
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    padding: 8px 16px;
+    border-top: 1px solid var(--line);
+    font-family: 'Courier New', monospace; font-size: 12px;
+  }
+  .rail .label { color: var(--dim); font-style: italic; font-family: Georgia, serif; margin-right: 2px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 4px 6px 4px 12px;
+    color: var(--dim);
+    cursor: pointer;
+  }
+  .chip:hover { color: var(--ink); border-color: var(--dim); }
+  .chip.custom { border-style: dashed; }
+  .chip.block { border-style: dashed; border-color: #2A3A5E; color: var(--gamma); }
+  .chip.block:hover { border-color: var(--gamma); }
+  .chip .x {
+    width: 16px; height: 16px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; color: var(--dim);
+    border: none; padding: 0; background: transparent;
+  }
+  .chip .x:hover { color: var(--active); background: var(--active-bg); }
+  .chip.pin { padding-right: 12px; }
+
+  .agent { cursor: grab; }
+  .agent:active { cursor: grabbing; }
+  .agent text {
+    font-family: Georgia, serif; font-size: 16px;
+    font-style: italic; font-weight: bold;
+    pointer-events: none;
+  }
+  .agent .ar-tag { font-size: 10px; font-style: normal; font-weight: normal; }
+  .wire { stroke: #C9C9D2; stroke-width: 1.4; }
+  .wire.active { stroke: var(--active); stroke-width: 2.2; }
+  .free { stroke: var(--dim); stroke-width: 1.2; stroke-dasharray: 3 3; opacity: 0.7; }
+  .port { cursor: crosshair; }
+  .port-ring { pointer-events: none; opacity: 0; }
+  .port:hover + .port-ring { opacity: 1; }
+  .redex { cursor: pointer; }
+  .ghost { stroke: var(--gamma); stroke-width: 1.4; stroke-dasharray: 5 4; }
+  .halo { pointer-events: none; stroke: var(--sel); stroke-width: 1.2; stroke-dasharray: 4 3; fill: none; }
+  .marquee { fill: rgba(199,240,124,0.06); stroke: var(--sel); stroke-width: 1; stroke-dasharray: 5 4; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .redex circle { transition: r 0.12s ease; }
+    .redex:hover circle { r: 15; }
+  }
+
+  @media (max-width: 720px) { aside { display: none; } }
+
+  #corner-credit {
+    position: fixed; right: 10px; bottom: 8px; z-index: 5;
+    font-size: 10.5px; color: #55555e; font-style: italic;
+    pointer-events: none; user-select: none;
+  }
+
+  .wire { cursor: pointer; }
+  .wire.wsel { stroke: var(--sel) !important; stroke-width: 2.4 !important; }
+
+  .lang-toggle { display: inline-flex; gap: 4px; }
+  .lang-btn {
+    font-family: 'Courier New', monospace; font-size: 11px;
+    padding: 5px 10px; border-radius: 999px;
+  }
+  .lang-btn.active { color: var(--gamma); border-color: #2A3A5E; background: var(--gamma-bg); }
+
+  /* ---------- welcome / entry screen ---------- */
+  #welcome-overlay {
+    position: fixed; inset: 0; z-index: 50;
+    background: radial-gradient(ellipse 70% 55% at 50% 38%, #14161f 0%, var(--bg) 70%);
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  #welcome-overlay.open { display: flex; }
+  #welcome {
+    max-width: 620px; width: 100%;
+    display: flex; flex-direction: column; align-items: center;
+    text-align: center; gap: 20px;
+  }
+  .w-lang {
+    position: fixed; top: 20px; right: 22px; z-index: 51;
+    display: flex; gap: 6px;
+  }
+  .w-lang-btn {
+    font-family: 'Courier New', monospace; font-size: 12px; letter-spacing: 0.03em;
+    color: var(--dim); background: transparent;
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: 6px 14px; cursor: pointer;
+  }
+  .w-lang-btn:hover { color: var(--ink); border-color: var(--dim); }
+  .w-lang-btn.active { color: var(--gamma); border-color: #2A3A5E; background: var(--gamma-bg); }
+  .w-greet {
+    font-family: Georgia, serif; font-style: italic; font-size: 15px;
+    color: var(--dim); letter-spacing: 0.02em;
+  }
+  .w-title {
+    margin: 0; font-family: Georgia, serif; font-weight: normal;
+    font-size: clamp(32px, 6vw, 52px); color: var(--ink); letter-spacing: 0.01em;
+  }
+  .w-title .sym { color: var(--gamma); font-style: italic; }
+  .w-tag {
+    margin: 0; max-width: 420px;
+    font-size: 14px; font-style: italic; color: var(--dim); opacity: 0.85;
+  }
+  #welcome-go {
+    margin-top: 8px;
+    background: var(--gamma-bg); color: var(--gamma);
+    border: 1px solid #2A3A5E; border-radius: 999px;
+    font-family: 'Courier New', monospace; font-size: 13.5px;
+    padding: 11px 28px; cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  #welcome-go:hover { border-color: var(--gamma); transform: translateY(-1px); }
+</style>
+</head>
+<body>
+
+<div id="welcome-overlay">
+  <div class="w-lang" role="group" aria-label="language">
+    <button class="w-lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+    <button class="w-lang-btn" data-lang="pt" onclick="setLang('pt')">PT</button>
+  </div>
+  <div id="welcome" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+    <div class="w-greet" id="welcome-greet">Good morning</div>
+    <h2 class="w-title" id="welcome-title">interaction <span class="sym">nets</span></h2>
+    <p class="w-tag" id="welcome-tag">a playground for interaction nets.</p>
+    <button id="welcome-go" onclick="closeWelcome()" data-i18n="w_enter">enter →</button>
+  </div>
+</div>
+
+<header>
+  <h1>interaction <span class="sym">nets</span></h1>
+  <span class="arity-wrap"><span data-i18n="lbl_aux">aux</span> <input id="arity" type="number" min="1" max="8" value="2"
+    data-i18n-title="tip_aux"></span>
+  <button class="b-gamma" onclick="addAgent('g')">+ γ</button>
+  <button class="b-delta" onclick="addAgent('d')">+ δ</button>
+  <button class="b-eps"   onclick="addAgent('e')">+ ε</button>
+  <span class="spacer"></span>
+  <button class="b-go" onclick="stepOnce()" data-i18n="btn_step">step →</button>
+  <button class="b-go" id="run-btn" onclick="toggleRun()" data-i18n="btn_run">run ▸</button>
+  <button class="b-go" onclick="reduceAll()" data-i18n="btn_all">all ⇒</button>
+  <button onclick="saveBlock()" data-i18n="btn_saveblock">save block ⧉</button>
+  <button onclick="saveCurrent()" data-i18n="btn_savenet">save net ✚</button>
+  <button onclick="exportSVG()" data-i18n="btn_svg" data-i18n-title="tip_svg">svg ↓</button>
+  <button onclick="exportPNG()" data-i18n="btn_png" data-i18n-title="tip_png">png ↓</button>
+  <button onclick="clearAll()" data-i18n="btn_clear">clear</button>
+  <span class="lang-toggle" role="group" aria-label="language">
+    <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" data-lang="pt" onclick="setLang('pt')">PT</button>
+  </span>
+  <button id="info-btn" aria-expanded="false" aria-controls="info"
+          onclick="toggleInfo()" data-i18n-title="tip_info">i</button>
+</header>
+
+<div id="info"></div>
+
+<main>
+  <div id="board-wrap">
+    <svg id="board" aria-label="Interaction net drawing area"></svg>
+  </div>
+  <aside>
+    <div class="tabs" role="tablist">
+      <button class="tab on" id="tab-hist" role="tab" aria-selected="true"
+        onclick="showTab('hist')" data-i18n="tab_hist">history</button>
+      <button class="tab" id="tab-saved" role="tab" aria-selected="false"
+        onclick="showTab('saved')" data-i18n="tab_saved">saved nets</button>
+    </div>
+    <div id="hist" class="pane on" aria-live="polite"></div>
+    <div id="saved" class="pane"></div>
+  </aside>
+</main>
+
+<div class="rail" id="blocks-rail"></div>
+<div class="rail" id="presets"></div>
+<div id="corner-credit">Alan Roger</div>
+
+<script>
+'use strict';
+/* =====================================================================
+   Model: nodes Map id -> {t, x, y, rot, ar} · wires Map "id:p"->"id:p"
+   Ports: 'p' principal, '0'..'n-1' auxiliary. ε has ar = 0.
+   ===================================================================== */
+const board = document.getElementById('board');
+const histEl = document.getElementById('hist');
+const nodes = new Map();
+const wires = new Map();
+const selection = new Set();
+let nid = 0;
+let drag = null;
+let hoverId = null;
+let VW = 1200, VH = 760;
+let selectedWire = null; /* "id:port|id:port" of a clicked wire, awaiting delete */
+
+/* =====================================================================
+   i18n — UI text only. Runtime/computation vocabulary (reduction labels
+   like "annihilation"/"commutation", agent symbols γ/δ/ε, preset/block
+   names) is intentionally always in English.
+   ===================================================================== */
+let LANG = 'en';
+try { LANG = localStorage.getItem('inet-lang') || 'en'; } catch (e) { }
+
+const INFO_EN = `
+  <p><b>Agents have n + 1 ports:</b> one <b>principal</b> (at the tip) and n auxiliary.
+     Pick n with <b>aux</b>, then add <span class="g">γ</span> or <span class="d">δ</span>.
+     <span class="e">ε</span> is arity 0. Identity = <i>symbol + arity</i>.</p>
+  <p><b>Sandbox coverage:</b> for now just <span class="g">γ</span>, <span class="d">δ</span> and
+     <span class="e">ε</span> — Lafont's classic combinators. But nothing locks you to them:
+     build your own nets and, with “save block ⧉”, pack any piece into a reusable block.</p>
+  <p><b>Reduction:</b> <span class="a">red wires</span> (principal↔principal) are active pairs.
+     · same symbol &amp; arity → <b>annihilation</b> (aux i ↔ aux i)
+     · anything else → <b>commutation</b> (cross-duplication; erasure = commuting with ε).</p>
+  <p><b>Computing:</b> click a ↯ for one chosen pair ·
+     <b>step →</b> reduces one pair ·
+     <b>run ▸</b> animates until normal form ·
+     <b>all ⇒</b> computes everything instantly (single redraw, thousands of steps ok).
+     Confluence guarantees the same result whatever the order.</p>
+  <p><b>Connecting ports:</b> drag from one port to another to wire them —
+     while dragging, possible target ports light up, and the one closest to your
+     cursor glows <span class="s">green</span> to show exactly where it'll snap.
+     Dropping on empty space disconnects.</p>
+  <p><b>Undo / delete:</b> <kbd>ctrl</kbd>+<kbd>z</kbd> (or <kbd>⌘</kbd>+<kbd>z</kbd>) undoes the
+     last action — perfect for reverting a bad connection. Click a <b>wire</b> and hit
+     <kbd>delete</kbd> to remove just that link; double-click an agent to delete it
+     (and its wires) outright.</p>
+  <p><b><span class="s">Selection</span>:</b> drag on empty space to rubber-band a group —
+     selected agents get a <span class="s">green halo</span> and move together.
+     <kbd>shift</kbd>·click adds/removes one agent from the selection.
+     <kbd>delete</kbd> removes the whole selection. Stamped blocks come pre-selected,
+     so you can drop them right where you want.</p>
+  <p><b>Other controls:</b> hover an agent and hit <kbd>r</kbd> / <kbd>shift·r</kbd> to rotate.
+     Nets and blocks are cached locally in your browser.</p>`;
+
+const INFO_PT = `
+  <p><b>Agentes têm n + 1 portas:</b> uma <b>principal</b> (na ponta) e n auxiliares.
+     Escolha n em <b>aux</b>, depois adicione <span class="g">γ</span> ou <span class="d">δ</span>.
+     <span class="e">ε</span> tem aridade 0. A identidade é <i>símbolo + aridade</i>.</p>
+  <p><b>Cobertura do sandbox:</b> por enquanto só <span class="g">γ</span>, <span class="d">δ</span> e
+     <span class="e">ε</span> — os combinators clássicos de Lafont. Mas nada te prende a eles:
+     monte suas próprias redes e, com “save block ⧉”, empacote qualquer trecho em um bloco
+     reutilizável pra usar depois.</p>
+  <p><b>Redução:</b> <span class="a">fios vermelhos</span> (principal↔principal) são pares ativos.
+     · mesmo símbolo e aridade → <b>aniquilação</b> (aux i ↔ aux i)
+     · qualquer outro caso → <b>comutação</b> (duplicação cruzada; apagamento = comutar com ε).</p>
+  <p><b>Computando:</b> clique num ↯ pra reduzir aquele par específico ·
+     <b>step →</b> reduz um par de cada vez ·
+     <b>run ▸</b> anima até a forma normal ·
+     <b>all ⇒</b> computa tudo de uma vez (um único redesenho, aguenta milhares de passos).
+     Confluência garante o mesmo resultado não importa a ordem.</p>
+  <p><b>Conectando portas:</b> arraste de uma porta até outra pra ligar os fios —
+     enquanto você arrasta, as portas possíveis acendem, e a mais próxima do cursor
+     brilha em <span class="s">verde</span> indicando onde vai encaixar. Soltar em área
+     vazia desconecta.</p>
+  <p><b>Desfazer / apagar:</b> <kbd>ctrl</kbd>+<kbd>z</kbd> (ou <kbd>⌘</kbd>+<kbd>z</kbd>) desfaz a
+     última ação — perfeito pra reverter uma conexão errada. Clique num <b>fio</b> e aperte
+     <kbd>delete</kbd> pra apagar só aquela ligação; duplo-clique num agente apaga o agente
+     (e seus fios) direto.</p>
+  <p><b><span class="s">Seleção</span>:</b> arraste em área vazia pra selecionar um grupo —
+     agentes selecionados ganham um <span class="s">halo verde</span> e se movem juntos.
+     <kbd>shift</kbd>·clique adiciona/remove um agente da seleção.
+     <kbd>delete</kbd> apaga a seleção inteira. Blocos vêm pré-selecionados ao serem
+     carimbados, então já é só arrastar pro lugar.</p>
+  <p><b>Outros controles:</b> passe o mouse sobre um agente e aperte <kbd>r</kbd> /
+     <kbd>shift·r</kbd> pra rotacionar. Redes e blocos ficam salvos localmente no navegador.</p>`;
+
+const I18N = {
+  en: {
+    lbl_aux: 'aux', tip_aux: 'number of auxiliary ports for new γ/δ agents',
+    btn_step: 'step →', btn_run: 'run ▸', btn_stop: 'stop ■', btn_all: 'all ⇒',
+    btn_saveblock: 'save block ⧉', btn_savenet: 'save net ✚',
+    btn_svg: 'svg ↓', btn_png: 'png ↓', btn_clear: 'clear',
+    tip_svg: 'vector — opens without losing quality at any zoom',
+    tip_png: 'high-resolution image (3×)', tip_info: 'how it works',
+    tab_hist: 'history', tab_saved: 'saved nets',
+    blocks_empty: 'select a group (or build a net) and hit “save block ⧉”',
+    tip_iface: n => `${n} interface port${n === 1 ? '' : 's'}`,
+    tip_remove_block: 'remove block', tip_remove_preset: 'remove preset', tip_delete: 'delete',
+    saved_mynets: 'my nets — click to load',
+    saved_mynets_empty: 'none yet — build something and hit “save net ✚”',
+    saved_blocks: 'blocks — click to stamp onto the board',
+    saved_blocks_empty: 'none yet — select a group and hit “save block ⧉”',
+    saved_builtin: 'built-in examples',
+    lbl_wire: n => n === 1 ? 'wire' : 'wires', lbl_interface: 'interface',
+    hist_empty: 'no reductions yet', saved_empty: 'nothing saved yet',
+    msg_no_undo: 'nothing to undo', msg_undone: '↺ undone',
+    msg_wire_deleted: 'wire deleted',
+    msg_agents_deleted: n => `${n} agent(s) deleted`,
+    msg_agents_selected: n => `${n} agent(s) selected`,
+    msg_rotated: (tg, dir, deg) => `${tg} rotated ${dir} (${deg}°)`,
+    msg_no_active: 'no active pairs', msg_normal_form: '⇒ normal form',
+    msg_normal_form_steps: (steps, ms) => `⇒ normal form in ${steps} step(s), ${ms} ms`,
+    msg_empty_save: 'empty net — nothing to save',
+    msg_empty_block: 'empty net — nothing to make a block from',
+    msg_empty_export: 'empty net — nothing to export',
+    prompt_preset: 'preset name:', prompt_preset_default: n => `my net ${n}`,
+    prompt_block: 'block name:', prompt_block_default: n => `block ${n}`,
+    msg_preset_cached: name => `preset cached: ${name}`,
+    msg_block_saved: (name, n, fromSel) =>
+      `block saved: ${name} (${n} interface port${n === 1 ? '' : 's'}${fromSel ? ', from selection' : ''})`,
+    msg_block_stamped: name => `stamped block: ${name} — drag the selection into place`,
+    msg_preset_removed: name => `preset removed: ${name}`,
+    msg_block_removed: name => `block removed: ${name}`,
+    msg_loaded: name => `loaded: ${name}`,
+    msg_svg_exported: 'svg exported — vector, opens without losing quality',
+    msg_png_exported: (w, h) => `png exported (${w}×${h})`,
+    msg_export_failed: m => `export failed: ${m}`,
+    msg_export_failed_retry: 'export failed — try exporting as svg',
+    msg_loaded_init: 'γ∙δ loaded — try step →, run ▸, or all ⇒',
+    greet_morning: 'Good morning', greet_afternoon: 'Good afternoon', greet_evening: 'Good evening',
+    w_tag: 'a playground for interaction nets.', w_enter: 'enter →',
+    info_html: INFO_EN,
+  },
+  pt: {
+    lbl_aux: 'aux', tip_aux: 'número de portas auxiliares para novos agentes γ/δ',
+    btn_step: 'passo →', btn_run: 'rodar ▸', btn_stop: 'parar ■', btn_all: 'tudo ⇒',
+    btn_saveblock: 'salvar bloco ⧉', btn_savenet: 'salvar rede ✚',
+    btn_svg: 'svg ↓', btn_png: 'png ↓', btn_clear: 'limpar',
+    tip_svg: 'vetorial — abre sem perder qualidade em qualquer zoom',
+    tip_png: 'imagem em alta resolução (3×)', tip_info: 'como funciona',
+    tab_hist: 'histórico', tab_saved: 'redes salvas',
+    blocks_empty: 'selecione um grupo (ou monte uma rede) e clique em “save block ⧉”',
+    tip_iface: n => `${n} porta${n === 1 ? '' : 's'} de interface`,
+    tip_remove_block: 'remover bloco', tip_remove_preset: 'remover predefinição', tip_delete: 'apagar',
+    saved_mynets: 'minhas redes — clique pra carregar',
+    saved_mynets_empty: 'nenhuma ainda — monte algo e clique em “save net ✚”',
+    saved_blocks: 'blocos — clique pra carimbar no quadro',
+    saved_blocks_empty: 'nenhum ainda — selecione um grupo e clique em “save block ⧉”',
+    saved_builtin: 'exemplos prontos',
+    lbl_wire: n => n === 1 ? 'fio' : 'fios', lbl_interface: 'interface',
+    hist_empty: 'nenhuma redução ainda', saved_empty: 'nada salvo ainda',
+    msg_no_undo: 'nada pra desfazer', msg_undone: '↺ desfeito',
+    msg_wire_deleted: 'fio apagado',
+    msg_agents_deleted: n => `${n} agente(s) apagado(s)`,
+    msg_agents_selected: n => `${n} agente(s) selecionado(s)`,
+    msg_rotated: (tg, dir, deg) => `${tg} rotacionado ${dir} (${deg}°)`,
+    msg_no_active: 'nenhum par ativo', msg_normal_form: '⇒ forma normal',
+    msg_normal_form_steps: (steps, ms) => `⇒ forma normal em ${steps} passo(s), ${ms} ms`,
+    msg_empty_save: 'rede vazia — nada pra salvar',
+    msg_empty_block: 'rede vazia — nada pra virar bloco',
+    msg_empty_export: 'rede vazia — nada pra exportar',
+    prompt_preset: 'nome da predefinição:', prompt_preset_default: n => `minha rede ${n}`,
+    prompt_block: 'nome do bloco:', prompt_block_default: n => `bloco ${n}`,
+    msg_preset_cached: name => `predefinição salva: ${name}`,
+    msg_block_saved: (name, n, fromSel) =>
+      `bloco salvo: ${name} (${n} porta${n === 1 ? '' : 's'} de interface${fromSel ? ', da seleção' : ''})`,
+    msg_block_stamped: name => `bloco carimbado: ${name} — arraste a seleção pro lugar`,
+    msg_preset_removed: name => `predefinição removida: ${name}`,
+    msg_block_removed: name => `bloco removido: ${name}`,
+    msg_loaded: name => `carregado: ${name}`,
+    msg_svg_exported: 'svg exportado — vetorial, abre sem perder qualidade',
+    msg_png_exported: (w, h) => `png exportado (${w}×${h})`,
+    msg_export_failed: m => `export falhou: ${m}`,
+    msg_export_failed_retry: 'export falhou — tente exportar como svg',
+    msg_loaded_init: 'γ∙δ carregado — tente passo →, rodar ▸ ou tudo ⇒',
+    greet_morning: 'Bom dia', greet_afternoon: 'Boa tarde', greet_evening: 'Boa noite',
+    w_tag: 'um playground pra brincar com interaction nets.', w_enter: 'entrar →',
+    info_html: INFO_PT,
+  },
+};
+
+function t(key, ...args) {
+  const dict = I18N[LANG] || I18N.en;
+  const v = dict[key] !== undefined ? dict[key] : I18N.en[key];
+  return typeof v === 'function' ? v(...args) : v;
+}
+
+function applyLang() {
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = t(el.dataset.i18nTitle); });
+  const infoEl = document.getElementById('info');
+  if (infoEl) infoEl.innerHTML = t('info_html');
+  const greetEl = document.getElementById('welcome-greet');
+  if (greetEl) greetEl.textContent = greetingWord();
+  const tagEl = document.getElementById('welcome-tag');
+  if (tagEl) tagEl.textContent = t('w_tag');
+  document.querySelectorAll('.lang-btn, .w-lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === LANG));
+  const runBtn = document.getElementById('run-btn');
+  if (runBtn) runBtn.textContent = typeof running !== 'undefined' && running ? t('btn_stop') : t('btn_run');
+  document.documentElement.style.setProperty('--i18n-hist-empty', JSON.stringify(t('hist_empty')));
+  document.documentElement.style.setProperty('--i18n-saved-empty', JSON.stringify(t('saved_empty')));
+  if (typeof renderRails === 'function' && typeof blocks !== 'undefined') renderRails();
+}
+
+function setLang(l) {
+  LANG = l;
+  try { localStorage.setItem('inet-lang', l); } catch (e) { }
+  applyLang();
+}
+
+/* ---------- undo (ctrl+z) ---------- */
+const undoStack = [];
+function cloneState() {
+  const ns = new Map();
+  for (const [id, n] of nodes) ns.set(id, { ...n });
+  return { nodes: ns, wires: new Map(wires), nid };
+}
+function pushUndo() {
+  undoStack.push(cloneState());
+  if (undoStack.length > 60) undoStack.shift();
+}
+function undo() {
+  if (!undoStack.length) { say(t('msg_no_undo')); return; }
+  const st = undoStack.pop();
+  nodes.clear(); for (const [id, n] of st.nodes) nodes.set(id, n);
+  wires.clear(); for (const [k, o] of st.wires) wires.set(k, o);
+  nid = st.nid;
+  selection.clear(); selectedWire = null;
+  rescanRedexes();
+  say(t('msg_undone'));
+  draw();
+}
+
+const NAME = { g: 'γ', d: 'δ', e: 'ε' };
+const SUB = '₀₁₂₃₄₅₆₇₈₉';
+const tag = n => NAME[n.t] + (n.t === 'e' ? '' : SUB[n.ar] || n.ar);
+const PORTS = n => ['p', ...Array.from({ length: n.ar }, (_, i) => String(i))];
+const HIT = 14;
+const SPACING = 30;
+
+const C = {
+  g: ['#16203C', '#7C9EF5'], d: ['#35220E', '#F0A45C'], e: ['#1C1F23', '#9AA3AC'],
+  wire: '#C9C9D2', active: '#F26D6D', activeBg: '#331214',
+  dim: '#8B8B96', bg: '#060608', dot: 'rgba(255,255,255,0.14)'
+};
+
+function halfW(n) { return Math.max(26, ((n.ar - 1) / 2) * SPACING + 16); }
+
+function baseOffset(n, port) {
+  const flip = n.t === 'd' ? -1 : 1;
+  if (n.t === 'e') return [0, -15];
+  if (port === 'p') return [0, 24 * flip];
+  const i = +port;
+  return [(i - (n.ar - 1) / 2) * SPACING, -15 * flip];
+}
+function rotXY(dx, dy, rot) {
+  switch (rot & 3) {
+    case 1: return [-dy, dx];
+    case 2: return [-dx, -dy];
+    case 3: return [dy, -dx];
+    default: return [dx, dy];
+  }
+}
+function portXY(n, port) {
+  const [dx, dy] = rotXY(...baseOffset(n, port), n.rot);
+  return [n.x + dx, n.y + dy];
+}
+
+const key = (id, p) => id + ':' + p;
+const split = k => { const i = k.indexOf(':'); return [+k.slice(0, i), k.slice(i + 1)]; };
+
+function unplug(k) {
+  const o = wires.get(k);
+  if (o !== undefined) { wires.delete(k); wires.delete(o); }
+}
+function plug(k1, k2) {
+  if (!k1 || !k2) return;
+  if (split(k1)[0] === split(k2)[0]) return;
+  unplug(k1); unplug(k2);
+  wires.set(k1, k2); wires.set(k2, k1);
+}
+const peer = (id, p) => wires.get(key(id, p)) ?? null;
+
+function mk(t, x, y, rot = 0, ar = t === 'e' ? 0 : 2) {
+  const id = ++nid; nodes.set(id, { t, x, y, rot, ar }); return id;
+}
+
+function rmNode(id) {
+  const n = nodes.get(id);
+  if (!n) return;
+  PORTS(n).forEach(p => unplug(key(id, p)));
+  nodes.delete(id);
+  selection.delete(id);
+  if (hoverId === id) hoverId = null;
+}
+
+/* =====================================================================
+   REDUCTION ENGINE.
+   The redex queue is maintained incrementally: plugging p↔p pushes the
+   pair; each step pops one. No full-map scans, no redraw per step —
+   reduceCore never touches the DOM, so "all ⇒" runs thousands of
+   steps and paints once at the end.
+   ===================================================================== */
+const redexQueue = [];
+
+const origPlug = plug;
+function plugQ(k1, k2) {
+  origPlug(k1, k2);
+  if (!k1 || !k2) return;
+  const [i1, p1] = split(k1), [i2, p2] = split(k2);
+  if (p1 === 'p' && p2 === 'p' && nodes.has(i1) && nodes.has(i2))
+    redexQueue.push([i1, i2]);
+}
+
+/* pops the next still-valid active pair (queue may hold stale entries) */
+function nextRedex() {
+  while (redexQueue.length) {
+    const [a, b] = redexQueue.shift();
+    if (nodes.has(a) && nodes.has(b) &&
+        wires.get(key(a, 'p')) === key(b, 'p')) return [a, b];
+  }
+  return null;
+}
+
+/* pure state transition — no draw, no DOM; returns log line */
+function reduceCore(idA, idB) {
+  const A = nodes.get(idA), B = nodes.get(idB);
+  if (!A || !B) return null;
+  const mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2;
+  const label = tag(A) + '∙' + tag(B);
+
+  if (A.t === B.t && A.ar === B.ar) {
+    const aP = PORTS(A).slice(1).map(p => peer(idA, p));
+    const bP = PORTS(B).slice(1).map(p => peer(idB, p));
+    rmNode(idA); rmNode(idB);
+    for (let i = 0; i < aP.length; i++) plugQ(aP[i], bP[i]);
+    return label + ' → ' + (aP.length ? 'wires' : '∅') + '  (annihilation)';
+  }
+
+  const n = A.ar, m = B.ar;
+  const aP = PORTS(A).slice(1).map(p => peer(idA, p));
+  const bP = PORTS(B).slice(1).map(p => peer(idB, p));
+  const tA = A.t, tB = B.t, arA = A.ar, arB = B.ar;
+  rmNode(idA); rmNode(idB);
+
+  const bCopies = [], aCopies = [];
+  for (let i = 0; i < n; i++) {
+    const x = mx + (i - (n - 1) / 2) * (SPACING * arB + 40);
+    bCopies.push(mk(tB, x, my - 75, 0, arB));
+    plugQ(key(bCopies[i], 'p'), aP[i]);
+  }
+  for (let j = 0; j < m; j++) {
+    const x = mx + (j - (m - 1) / 2) * (SPACING * arA + 40);
+    aCopies.push(mk(tA, x, my + 75, 0, arA));
+    plugQ(key(aCopies[j], 'p'), bP[j]);
+  }
+  for (let i = 0; i < n; i++)
+    for (let j = 0; j < m; j++)
+      plugQ(key(bCopies[i], String(j)), key(aCopies[j], String(i)));
+
+  return label + ' → ' + m + '×' + tag({ t: tA, ar: arA }) + ' + ' + n + '×' + tag({ t: tB, ar: arB }) +
+    '  (' + ((tA === 'e' || tB === 'e') ? 'erasure' : 'commutation') + ')';
+}
+
+/* clicking a ↯: reduce that specific pair */
+function reduce(idA, idB) {
+  const msg = reduceCore(idA, idB);
+  if (msg) say(msg);
+  draw();
+}
+
+function stepOnce() {
+  const r = nextRedex();
+  if (!r) { say(t('msg_no_active')); return; }
+  say(reduceCore(r[0], r[1]));
+  draw();
+}
+
+/* run ▸ : animated reduction, one step every 160 ms */
+let running = null;
+function toggleRun() {
+  const btn = document.getElementById('run-btn');
+  if (running) { clearInterval(running); running = null;
+                 btn.textContent = t('btn_run'); btn.classList.remove('running'); return; }
+  btn.textContent = t('btn_stop'); btn.classList.add('running');
+  running = setInterval(() => {
+    const r = nextRedex();
+    if (!r) { toggleRun(); say(t('msg_normal_form')); return; }
+    say(reduceCore(r[0], r[1]));
+    draw();
+  }, 160);
+}
+
+/* all ⇒ : instant — no intermediate draws, history appended in one batch */
+function reduceAll() {
+  const t0 = performance.now();
+  const msgs = [];
+  let r, steps = 0;
+  while ((r = nextRedex()) && steps < 20000) {
+    const m = reduceCore(r[0], r[1]);
+    if (m) msgs.push(m);
+    steps++;
+  }
+  const ms = (performance.now() - t0).toFixed(1);
+  msgs.push(steps ? t('msg_normal_form_steps', steps, ms) : t('msg_no_active'));
+  sayBatch(msgs);
+  draw();
+}
+
+/* rebuild the queue from scratch (after restore/stamp/manual wiring edits) */
+function rescanRedexes() {
+  redexQueue.length = 0;
+  for (const [k, o] of wires) {
+    const [i1, p1] = split(k), [i2, p2] = split(o);
+    if (p1 === 'p' && p2 === 'p' && i1 < i2) redexQueue.push([i1, i2]);
+  }
+}
+
+/* =====================================================================
+   Snapshots, presets, blocks.
+   ===================================================================== */
+function snapshot() {
+  const ns = [...nodes.entries()].map(([id, n]) => [id, n.t, Math.round(n.x), Math.round(n.y), n.rot, n.ar]);
+  const ws = [];
+  const seen = new Set();
+  for (const [k, o] of wires) {
+    const pair = k < o ? k + '|' + o : o + '|' + k;
+    if (!seen.has(pair)) { seen.add(pair); ws.push([k, o]); }
+  }
+  return { ns, ws };
+}
+
+/* stamp returns the new ids so callers can select them */
+function stamp(snap, dx = 0, dy = 0) {
+  const map = new Map();
+  for (const [oldId, t, x, y, rot, ar] of snap.ns)
+    map.set(oldId, mk(t, x + dx, y + dy, rot || 0, ar ?? (t === 'e' ? 0 : 2)));
+  for (const [k1, k2] of snap.ws) {
+    const [i1, p1] = split(k1), [i2, p2] = split(k2);
+    plug(key(map.get(i1), p1), key(map.get(i2), p2));
+  }
+  rescanRedexes();
+  draw();
+  return [...map.values()];
+}
+
+function restore(snap) { if (nodes.size) pushUndo(); clearAll(true); stamp(snap, 0, 0); }
+
+const builtins = [
+  { name: 'γγ annihilate', pin: true, snap: { ns: [[1,'g',300,300,0,2],[2,'g',600,300,0,2]], ws: [['1:p','2:p']] } },
+  { name: 'γδ commute',    pin: true, snap: { ns: [[1,'g',300,300,0,2],[2,'d',600,300,0,2]], ws: [['1:p','2:p']] } },
+  { name: 'γ₃δ₂ commute',  pin: false, snap: { ns: [[1,'g',300,300,0,3],[2,'d',620,300,0,2]], ws: [['1:p','2:p']] } },
+  { name: 'ε erases a tree', pin: false, snap: {
+      ns: [[1,'e',220,150,0,0],[2,'g',430,230,0,2],[3,'e',290,380,0,0],[4,'g',570,380,0,2],[5,'e',490,510,0,0],[6,'e',650,510,0,0]],
+      ws: [['1:p','2:p'],['2:0','3:p'],['2:1','4:p'],['4:0','5:p'],['4:1','6:p']] } },
+];
+
+let presets = [];
+let blocks = [];
+
+function loadCache() {
+  presets = builtins.map(p => ({ ...p, custom: false }));
+  try {
+    for (const p of JSON.parse(localStorage.getItem('inet-presets') || '[]'))
+      presets.push({ ...p, custom: true, pin: false });
+    blocks = JSON.parse(localStorage.getItem('inet-blocks') || '[]');
+  } catch (e) { blocks = blocks || []; }
+}
+
+function persist() {
+  try {
+    localStorage.setItem('inet-presets',
+      JSON.stringify(presets.filter(p => p.custom).map(({ name, snap, ts }) => ({ name, snap, ts }))));
+    localStorage.setItem('inet-blocks',
+      JSON.stringify(blocks.map(({ name, snap, iface, ts }) => ({ name, snap, iface, ts }))));
+  } catch (e) { }
+}
+
+function saveCurrent() {
+  if (nodes.size === 0) { say(t('msg_empty_save')); return; }
+  const name = prompt(t('prompt_preset'), t('prompt_preset_default', presets.filter(p => p.custom).length + 1));
+  if (!name) return;
+  presets.push({ name: name.trim(), snap: snapshot(), custom: true, pin: false, ts: Date.now() });
+  persist(); renderRails();
+  say(t('msg_preset_cached', name.trim()));
+}
+
+function saveBlock() {
+  /* selection, if any, becomes the block; otherwise the whole net */
+  const ids = selection.size ? [...selection] : [...nodes.keys()];
+  if (ids.length === 0) { say(t('msg_empty_block')); return; }
+  const idSet = new Set(ids);
+  let freePorts = 0;
+  for (const id of ids) {
+    const n = nodes.get(id);
+    for (const p of PORTS(n)) {
+      const o = wires.get(key(id, p));
+      if (o === undefined || !idSet.has(split(o)[0])) freePorts++;
+    }
+  }
+  const name = prompt(t('prompt_block'), t('prompt_block_default', blocks.length + 1));
+  if (!name) return;
+  let cx = 0, cy = 0;
+  for (const id of ids) { cx += nodes.get(id).x; cy += nodes.get(id).y; }
+  cx = Math.round(cx / ids.length); cy = Math.round(cy / ids.length);
+  const ns = ids.map(id => {
+    const n = nodes.get(id);
+    return [id, n.t, Math.round(n.x) - cx, Math.round(n.y) - cy, n.rot, n.ar];
+  });
+  const ws = [];
+  const seen = new Set();
+  for (const id of ids) {
+    const n = nodes.get(id);
+    for (const p of PORTS(n)) {
+      const k = key(id, p), o = wires.get(k);
+      if (o === undefined || !idSet.has(split(o)[0])) continue;
+      const pair = k < o ? k + '|' + o : o + '|' + k;
+      if (!seen.has(pair)) { seen.add(pair); ws.push([k, o]); }
+    }
+  }
+  blocks.push({ name: name.trim(), snap: { ns, ws }, iface: freePorts, ts: Date.now() });
+  persist(); renderRails();
+  say(t('msg_block_saved', name.trim(), freePorts, selection.size > 0));
+}
+
+let stampCount = 0;
+function useBlock(i) {
+  pushUndo();
+  const b = blocks[i];
+  const dx = VW / 2 + (stampCount % 5) * 28 - 56;
+  const dy = VH / 2 + (stampCount % 5) * 24 - 48;
+  stampCount++;
+  const newIds = stamp(b.snap, dx, dy);
+  selection.clear();
+  newIds.forEach(id => selection.add(id));   /* pre-selected: drag into place */
+  draw();
+  say(t('msg_block_stamped', b.name));
+}
+
+function deletePreset(i) {
+  const p = presets[i];
+  if (p.pin) return;
+  presets.splice(i, 1); persist(); renderRails();
+  say(t('msg_preset_removed', p.name));
+}
+function deleteBlock(i) {
+  const b = blocks.splice(i, 1)[0];
+  persist(); renderRails();
+  say(t('msg_block_removed', b.name));
+}
+
+function renderRails() {
+  const bl = document.getElementById('blocks-rail');
+  bl.innerHTML = `<span class="label">${t('rail_blocks')}</span>` +
+    (blocks.length === 0
+      ? `<span style="color:var(--dim);font-style:italic">${t('blocks_empty')}</span>`
+      : blocks.map((b, i) =>
+        `<span class="chip block" onclick="useBlock(${i})" title="${t('tip_iface', b.iface)}">
+           ${b.name} ⌁${b.iface}
+           <button class="x" title="${t('tip_remove_block')}" aria-label="${t('tip_remove_block')}: ${b.name}"
+             onclick="event.stopPropagation(); deleteBlock(${i})">×</button></span>`).join(''));
+
+  const el = document.getElementById('presets');
+  el.innerHTML = `<span class="label">${t('rail_presets')}</span>` + presets.map((p, i) => {
+    const cls = 'chip' + (p.custom ? ' custom' : '') + (p.pin ? ' pin' : '');
+    const x = p.pin ? '' :
+      `<button class="x" title="${t('tip_remove_preset')}" aria-label="${t('tip_remove_preset')}: ${p.name}"
+        onclick="event.stopPropagation(); deletePreset(${i})">×</button>`;
+    return `<span class="${cls}" onclick="restore(presets[${i}].snap); say(t('msg_loaded', '${p.name}'))">${p.name}${x}</span>`;
+  }).join('');
+
+  renderSaved();
+}
+
+/* ---------- saved nets list (sidebar tab) ---------- */
+function snapMeta(snap) {
+  const c = { g: 0, d: 0, e: 0 };
+  for (const [, tt] of snap.ns) c[tt]++;
+  return `<span class="g">γ ${c.g}</span> · <span class="d">δ ${c.d}</span> · ` +
+         `<span class="e">ε ${c.e}</span> · ${snap.ws.length} ${t('lbl_wire', snap.ws.length)}`;
+}
+function when(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  return ' · ' + d.toLocaleDateString() + ' ' +
+    d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function renderSaved() {
+  const el = document.getElementById('saved');
+  const custom = presets.map((p, i) => [p, i]).filter(([p]) => p.custom);
+  const built = presets.map((p, i) => [p, i]).filter(([p]) => !p.custom);
+  let html = '';
+
+  html += `<div class="saved-sec">${t('saved_mynets')}</div>`;
+  html += custom.length === 0
+    ? `<div style="font-style:italic;opacity:0.5;margin-bottom:8px">${t('saved_mynets_empty')}</div>`
+    : custom.map(([p, i]) =>
+      `<div class="net-item" onclick="restore(presets[${i}].snap); say(t('msg_loaded', '${p.name}'))">
+         <div class="nm">${p.name}
+           <button class="del" title="${t('tip_delete')}" aria-label="${t('tip_delete')}: ${p.name}"
+             onclick="event.stopPropagation(); deletePreset(${i})">×</button></div>
+         <div class="meta">${snapMeta(p.snap)}${when(p.ts)}</div>
+       </div>`).join('');
+
+  html += `<div class="saved-sec">${t('saved_blocks')}</div>`;
+  html += blocks.length === 0
+    ? `<div style="font-style:italic;opacity:0.5;margin-bottom:8px">${t('saved_blocks_empty')}</div>`
+    : blocks.map((b, i) =>
+      `<div class="net-item blockitem" onclick="useBlock(${i})">
+         <div class="nm">${b.name}
+           <button class="del" title="${t('tip_delete')}" aria-label="${t('tip_delete')}: ${b.name}"
+             onclick="event.stopPropagation(); deleteBlock(${i})">×</button></div>
+         <div class="meta">${snapMeta(b.snap)} · ⌁${b.iface} ${t('lbl_interface')}${when(b.ts)}</div>
+       </div>`).join('');
+
+  html += `<div class="saved-sec">${t('saved_builtin')}</div>`;
+  html += built.map(([p, i]) =>
+    `<div class="net-item builtin" onclick="restore(presets[${i}].snap); say(t('msg_loaded', '${p.name}'))">
+       <div class="nm">${p.name}</div>
+       <div class="meta">${snapMeta(p.snap)}</div>
+     </div>`).join('');
+
+  el.innerHTML = html;
+}
+
+function showTab(which) {
+  for (const t of ['hist', 'saved']) {
+    document.getElementById(t).classList.toggle('on', t === which);
+    const tab = document.getElementById('tab-' + t);
+    tab.classList.toggle('on', t === which);
+    tab.setAttribute('aria-selected', t === which);
+  }
+}
+
+/* =====================================================================
+   Export — SVG (vector, lossless) and PNG (raster, high-res)
+   Both bake in a small "created by Alan Roger" credit line.
+   ===================================================================== */
+function exportBBox() {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const n of nodes.values()) {
+    const m = halfW(n) + 24;
+    x0 = Math.min(x0, n.x - m); y0 = Math.min(y0, n.y - m);
+    x1 = Math.max(x1, n.x + m); y1 = Math.max(y1, n.y + m);
+  }
+  const PAD = 40;
+  const w = Math.max(x1 - x0 + PAD * 2, 320);
+  const h = Math.max(y1 - y0 + PAD * 2, 260); /* extra room at bottom for the credit line */
+  const ox = -(x0 - PAD), oy = -(y0 - PAD);
+  return { w, h, ox, oy };
+}
+
+function creditLine(w, h) {
+  return `<a href="https://github.com/AlanRMA" target="_blank">` +
+    `<text x="${w - 12}" y="${h - 12}" text-anchor="end" ` +
+    `font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="11.5" ` +
+    `fill="#6a6a74">created by Alan Roger &#183; github.com/AlanRMA</text></a>`;
+}
+
+/* builds the final, self-contained SVG string (real colors, no CSS vars) with credit baked in */
+function buildExportSVG() {
+  const { w, h, ox, oy } = exportBBox();
+  const inner = buildSVG(w, h, ox, oy, true)
+    .replace(/^<svg[^>]*>/, '')
+    .replace(/<\/svg>$/, '');
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" ` +
+    `width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">` +
+    `<rect x="0" y="0" width="${w}" height="${h}" fill="${C.bg}"/>` +
+    inner + creditLine(w, h) + `</svg>`;
+  return { svg, w, h };
+}
+
+function exportSVG() {
+  if (nodes.size === 0) { say('rede vazia — nada pra exportar'); return; }
+  const { svg } = buildExportSVG();
+  const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'interaction-net.svg';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  say('svg exportado — vetorial, abre sem perder qualidade');
+}
+
+function exportPNG() {
+  if (nodes.size === 0) { say('rede vazia — nada pra exportar'); return; }
+  const { svg, w, h } = buildExportSVG();
+  /* data URI (not a blob URL) — the most reliably taint-free way to rasterize
+     an inline SVG across browsers before drawing it to a canvas */
+  const svgData = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  const img = new Image();
+  img.onload = () => {
+    const scale = 3;
+    const cv = document.createElement('canvas');
+    cv.width = Math.round(w * scale); cv.height = Math.round(h * scale);
+    const cx = cv.getContext('2d');
+    cx.fillStyle = C.bg;
+    cx.fillRect(0, 0, cv.width, cv.height);
+    cx.fillStyle = C.dot;
+    for (let gx = 13; gx < w; gx += 26)
+      for (let gy = 13; gy < h; gy += 26) {
+        cx.beginPath(); cx.arc(gx * scale, gy * scale, scale, 0, Math.PI * 2); cx.fill();
+      }
+    cx.drawImage(img, 0, 0, cv.width, cv.height);
+    let dataUrl;
+    try { dataUrl = cv.toDataURL('image/png'); }
+    catch (e) { say('export falhou: ' + e.message); return; }
+    const a = document.createElement('a');
+    a.href = dataUrl; a.download = 'interaction-net.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    say('png exportado (' + cv.width + '×' + cv.height + ')');
+  };
+  img.onerror = () => say('export falhou — tente exportar como svg');
+  img.src = svgData;
+}
+
+/* =====================================================================
+   Rendering (shared board/export builder)
+   ===================================================================== */
+function colors(n, exp) {
+  if (exp) return C[n.t];
+  const v = n.t === 'g' ? 'gamma' : n.t === 'd' ? 'delta' : 'eps';
+  return [`var(--${v}-bg)`, `var(--${v})`];
+}
+
+function buildSVG(w, h, ox, oy, exp) {
+  const out = [];
+  const seen = new Set();
+  const P = (n, p) => { const [x, y] = portXY(n, p); return [x + ox, y + oy]; };
+  const wireCol = exp ? C.wire : '#C9C9D2';
+  const actCol = exp ? C.active : 'var(--active)';
+  const actBg = exp ? C.activeBg : 'var(--active-bg)';
+  const dimCol = exp ? C.dim : 'var(--dim)';
+  const bgCol = exp ? C.bg : 'var(--bg)';
+
+  for (const [k, o] of wires) {
+    const pair = k < o ? k + '|' + o : o + '|' + k;
+    if (seen.has(pair)) continue;
+    seen.add(pair);
+    const [i1, p1] = split(k), [i2, p2] = split(o);
+    const n1 = nodes.get(i1), n2 = nodes.get(i2);
+    if (!n1 || !n2) continue;
+    const [ax, ay] = P(n1, p1), [bx, by] = P(n2, p2);
+    const act = p1 === 'p' && p2 === 'p';
+    const wsel = !exp && selectedWire === pair;
+    if (!exp) {
+      /* wider invisible hit-line so thin wires are easy to click */
+      out.push(`<line data-wire="${pair}" x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="transparent" stroke-width="14"/>`);
+    }
+    out.push(`<line ${exp ? '' : `class="wire${act ? ' active' : ''}${wsel ? ' wsel' : ''}" data-wire="${pair}"`} x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="${act ? actCol : wireCol}" stroke-width="${act ? 2.2 : 1.4}"/>`);
+    if (act) {
+      const mx = (ax + bx) / 2, my = (ay + by) / 2;
+      const open = exp ? '<g>' : `<g class="redex" onclick="reduce(${i1},${i2})">`;
+      out.push(`${open}<circle cx="${mx}" cy="${my}" r="13" fill="${actBg}" stroke="${actCol}" stroke-width="1.3"/>
+        <text x="${mx}" y="${my + 1}" text-anchor="middle" dominant-baseline="central" font-size="13" fill="${actCol}">↯</text></g>`);
+    }
+  }
+
+  for (const [id, n] of nodes) {
+    for (const p of PORTS(n)) {
+      if (wires.has(key(id, p))) continue;
+      const [px, py] = P(n, p);
+      const dx = px - (n.x + ox), dy = py - (n.y + oy), len = Math.hypot(dx, dy) || 1;
+      const ex = px + dx / len * 13, ey = py + dy / len * 13;
+      out.push(`<line ${exp ? '' : 'class="free"'} x1="${px}" y1="${py}" x2="${ex}" y2="${ey}" stroke="${dimCol}" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.7"/>
+        <circle cx="${ex}" cy="${ey}" r="3" fill="${bgCol}" stroke="${dimCol}"/>`);
+    }
+  }
+
+  for (const [id, n] of nodes) {
+    const [fill, stroke] = colors(n, exp);
+    const x = n.x + ox, y = n.y + oy;
+    const hw = halfW(n);
+    const deg = (n.rot & 3) * 90;
+    const tr = deg ? ` transform="rotate(${deg} ${x} ${y})"` : '';
+    let shape;
+    if (n.t === 'e')
+      shape = `<circle cx="${x}" cy="${y}" r="15" fill="${fill}" stroke="${stroke}" stroke-width="1"/>`;
+    else if (n.t === 'g')
+      shape = `<polygon points="${x - hw},${y - 16} ${x + hw},${y - 16} ${x},${y + 24}" fill="${fill}" stroke="${stroke}" stroke-width="1"${tr}/>`;
+    else
+      shape = `<polygon points="${x - hw},${y + 16} ${x + hw},${y + 16} ${x},${y - 24}" fill="${fill}" stroke="${stroke}" stroke-width="1"${tr}/>`;
+    const arTag = n.t === 'e' ? '' :
+      `<tspan class="ar-tag" ${exp ? 'font-size="10" font-style="normal" font-weight="normal"' : ''} dy="2">${n.ar}</tspan>`;
+    const open = exp ? '<g>' : `<g class="agent" data-node="${id}">`;
+    out.push(`${open}${shape}
+      <text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central"
+        ${exp ? 'font-family="Georgia, serif" font-size="16" font-style="italic" font-weight="bold"' : ''}
+        fill="${stroke}">${NAME[n.t]}${arTag}</text></g>`);
+    if (!exp && selection.has(id)) {
+      const rr = Math.max(hw, 26) + 9;
+      out.push(`<circle class="halo" cx="${x}" cy="${y}" r="${rr}"/>`);
+    }
+    if (!exp) {
+      for (const p of PORTS(n)) {
+        const [px, py] = portXY(n, p);
+        let ringStroke = stroke, ringWidth = 1, ringOpacity = null, ringR = 6;
+        if (drag && drag.mode === 'wire') {
+          const fromId = split(drag.from)[0];
+          if (id !== fromId) {
+            const dist = Math.hypot(px - drag.x, py - drag.y);
+            if (dist < HIT + 6) { ringStroke = 'var(--sel)'; ringWidth = 2.4; ringOpacity = 1; ringR = 8; }
+            else ringOpacity = 0.55;
+          }
+        }
+        const ringStyle = ringOpacity !== null ? ` style="opacity:${ringOpacity}"` : '';
+        out.push(`<circle class="port" data-port="${key(id, p)}" cx="${px}" cy="${py}" r="${HIT}" fill="transparent"/>
+          <circle class="port-ring"${ringStyle} cx="${px}" cy="${py}" r="${ringR}" fill="none" stroke="${ringStroke}" stroke-width="${ringWidth}"/>`);
+      }
+    }
+  }
+
+  if (!exp && drag && drag.mode === 'wire')
+    out.push(`<line class="ghost" x1="${drag.x0}" y1="${drag.y0}" x2="${drag.x}" y2="${drag.y}"/>`);
+  if (!exp && drag && drag.mode === 'select') {
+    const rx = Math.min(drag.x0, drag.x), ry = Math.min(drag.y0, drag.y);
+    const rw = Math.abs(drag.x - drag.x0), rh = Math.abs(drag.y - drag.y0);
+    out.push(`<rect class="marquee" x="${rx}" y="${ry}" width="${rw}" height="${rh}"/>`);
+  }
+
+  if (exp)
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">` + out.join('') + '</svg>';
+  return out.join('');
+}
+
+function draw() { board.innerHTML = buildSVG(0, 0, 0, 0, false); }
+
+/* =====================================================================
+   UI
+   ===================================================================== */
+function toggleInfo() {
+  const box = document.getElementById('info');
+  const btn = document.getElementById('info-btn');
+  const open = box.classList.toggle('open');
+  btn.setAttribute('aria-expanded', open);
+}
+
+function mkLine(msg, last) {
+  const div = document.createElement('div');
+  if (last) div.className = 'last';
+  div.textContent = msg;
+  return div;
+}
+function say(msg) {
+  const prev = histEl.querySelector('.last');
+  if (prev) prev.classList.remove('last');
+  histEl.appendChild(mkLine(msg, true));
+  histEl.scrollTop = histEl.scrollHeight;
+}
+/* batch append: one reflow for thousands of lines */
+function sayBatch(msgs) {
+  const prev = histEl.querySelector('.last');
+  if (prev) prev.classList.remove('last');
+  const frag = document.createDocumentFragment();
+  msgs.forEach((m, i) => frag.appendChild(mkLine(m, i === msgs.length - 1)));
+  histEl.appendChild(frag);
+  histEl.scrollTop = histEl.scrollHeight;
+}
+
+function addAgent(t) {
+  pushUndo();
+  const ar = t === 'e' ? 0 :
+    Math.max(1, Math.min(8, +document.getElementById('arity').value || 2));
+  const c = nodes.size;
+  mk(t, 120 + (c % 7) * 140, 110 + Math.floor(c / 7) * 140, 0, ar);
+  draw();
+}
+
+function clearAll(quiet) {
+  if (running) toggleRun();
+  if (!quiet && nodes.size) pushUndo();
+  nodes.clear(); wires.clear(); selection.clear();
+  redexQueue.length = 0;
+  selectedWire = null;
+  nid = 0; hoverId = null; stampCount = 0;
+  if (!quiet) histEl.innerHTML = '';
+  draw();
+}
+
+function syncViewBox() {
+  const r = board.getBoundingClientRect();
+  if (r.width > 0 && r.height > 0) { VW = r.width; VH = r.height; }
+  board.setAttribute('viewBox', `0 0 ${VW} ${VH}`);
+}
+window.addEventListener('resize', () => { syncViewBox(); draw(); });
+
+function svgXY(ev) {
+  const pt = board.createSVGPoint();
+  pt.x = ev.clientX; pt.y = ev.clientY;
+  const p = pt.matrixTransform(board.getScreenCTM().inverse());
+  return [p.x, p.y];
+}
+
+board.addEventListener('pointerdown', ev => {
+  const el = ev.target.closest('[data-port],[data-node]');
+  const wireEl = !el ? ev.target.closest('[data-wire]') : null;
+  const [x, y] = svgXY(ev);
+  board.setPointerCapture(ev.pointerId);
+
+  if (wireEl) {                                 /* click a wire → select it */
+    selection.clear();
+    selectedWire = wireEl.dataset.wire;
+    drag = null;
+    draw();
+    return;
+  }
+
+  if (!el) {                                    /* empty space → marquee */
+    selectedWire = null;
+    if (!ev.shiftKey) selection.clear();
+    drag = { mode: 'select', x0: x, y0: y, x, y };
+    draw();
+    return;
+  }
+  selectedWire = null;
+  if (el.dataset.port) {
+    const [id, p] = split(el.dataset.port);
+    const [px, py] = portXY(nodes.get(id), p);
+    drag = { mode: 'wire', from: el.dataset.port, x0: px, y0: py, x, y };
+    draw();
+    return;
+  }
+  const id = +el.dataset.node;
+  if (ev.shiftKey) {                            /* shift·click toggles */
+    selection.has(id) ? selection.delete(id) : selection.add(id);
+    drag = null;
+    draw();
+    return;
+  }
+  if (!selection.has(id)) { selection.clear(); selection.add(id); }
+  /* group drag: remember start position of every selected node */
+  const starts = new Map();
+  for (const sid of selection) {
+    const n = nodes.get(sid);
+    starts.set(sid, [n.x, n.y]);
+  }
+  drag = { mode: 'move', starts, px: x, py: y };
+  draw();
+});
+
+board.addEventListener('pointermove', ev => {
+  const agentEl = ev.target.closest('[data-node]');
+  hoverId = agentEl ? +agentEl.dataset.node : hoverId;
+  if (!agentEl && !drag) {
+    const [x, y] = svgXY(ev);
+    hoverId = null;
+    let best = 46;
+    for (const [id, n] of nodes) {
+      const d = Math.hypot(n.x - x, n.y - y);
+      if (d < best) { best = d; hoverId = id; }
+    }
+  }
+  if (!drag) return;
+  const [x, y] = svgXY(ev);
+  if (drag.mode === 'move') {
+    const dx = x - drag.px, dy = y - drag.py;
+    for (const [sid, [sx, sy]] of drag.starts) {
+      const n = nodes.get(sid);
+      if (n) { n.x = sx + dx; n.y = sy + dy; }
+    }
+  } else { drag.x = x; drag.y = y; }
+  draw();
+});
+
+board.addEventListener('pointerup', ev => {
+  if (!drag) return;
+  const [x, y] = svgXY(ev);
+
+  if (drag.mode === 'select') {
+    const x0 = Math.min(drag.x0, x), x1 = Math.max(drag.x0, x);
+    const y0 = Math.min(drag.y0, y), y1 = Math.max(drag.y0, y);
+    if (x1 - x0 > 4 || y1 - y0 > 4) {
+      for (const [id, n] of nodes)
+        if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1) selection.add(id);
+      if (selection.size) say(selection.size + ' agent(s) selected');
+    }
+  }
+  else if (drag.mode === 'wire') {
+    let hit = null, best = HIT + 6;
+    const fromId = split(drag.from)[0];
+    for (const [id, n] of nodes) {
+      if (id === fromId) continue;
+      for (const p of PORTS(n)) {
+        const [px, py] = portXY(n, p);
+        const dist = Math.hypot(px - x, py - y);
+        if (dist < best) { best = dist; hit = key(id, p); }
+      }
+    }
+    pushUndo();
+    hit ? plugQ(drag.from, hit) : unplug(drag.from);
+  }
+  drag = null;
+  draw();
+});
+
+board.addEventListener('dblclick', ev => {
+  const el = ev.target.closest('[data-node]');
+  if (el) { pushUndo(); rmNode(+el.dataset.node); draw(); }
+});
+
+window.addEventListener('keydown', ev => {
+  if (ev.target.tagName === 'INPUT') return;
+
+  if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'z') {
+    ev.preventDefault();
+    undo();
+    return;
+  }
+
+  if (ev.key === 'Delete' || ev.key === 'Backspace') {
+    if (selectedWire) {
+      pushUndo();
+      const [k] = selectedWire.split('|');
+      unplug(k);
+      selectedWire = null;
+      say('fio apagado');
+      draw();
+      ev.preventDefault();
+      return;
+    }
+    if (selection.size) {
+      pushUndo();
+      const n = selection.size;
+      [...selection].forEach(rmNode);
+      say(n + ' agent(s) deleted');
+      draw();
+      ev.preventDefault();
+    }
+    return;
+  }
+  if (ev.key === 'Escape') { selection.clear(); selectedWire = null; draw(); return; }
+
+  if (ev.key.toLowerCase() === 'r' && !ev.metaKey && !ev.ctrlKey) {
+    if (hoverId === null || !nodes.has(hoverId)) return;
+    const n = nodes.get(hoverId);
+    n.rot = (n.rot + (ev.shiftKey ? 3 : 1)) & 3;
+    say(tag(n) + ' rotated ' + (ev.shiftKey ? '↺' : '↻') + ' (' + n.rot * 90 + '°)');
+    draw();
+  }
+});
+
+/* =====================================================================
+   Welcome / entry screen — good morning / afternoon / evening
+   ===================================================================== */
+function greetingWord() {
+  const h = new Date().getHours();
+  if (h < 12) return t('greet_morning');
+  if (h < 18) return t('greet_afternoon');
+  return t('greet_evening');
+}
+function closeWelcome() {
+  const ov = document.getElementById('welcome-overlay');
+  ov.classList.remove('open');
+  try { localStorage.setItem('inet-welcome-mute-day', new Date().toDateString()); } catch (e) { }
+}
+function maybeShowWelcome() {
+  let mutedToday = false;
+  try { mutedToday = localStorage.getItem('inet-welcome-mute-day') === new Date().toDateString(); } catch (e) { }
+  if (!mutedToday) document.getElementById('welcome-overlay').classList.add('open');
+}
+document.getElementById('welcome-overlay').addEventListener('pointerdown', ev => {
+  if (ev.target.id === 'welcome-overlay') closeWelcome();
+});
+window.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape' && document.getElementById('welcome-overlay').classList.contains('open'))
+    closeWelcome();
+});
+
+syncViewBox();
+loadCache();
+renderRails();
+restore(presets[1].snap);
+undoStack.length = 0; /* loading the default preset shouldn't be the first undo step */
+applyLang();
+say(t('msg_loaded_init'));
+maybeShowWelcome();
+</script>
+</body>
+</html>
