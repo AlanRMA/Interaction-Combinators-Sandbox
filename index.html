@@ -47,6 +47,19 @@
   h1 { font-size: 17px; font-weight: normal; margin: 0 10px 0 0; letter-spacing: 0.02em; white-space: nowrap; }
   h1 .sym { color: var(--gamma); font-style: italic; }
 
+  #doc-name {
+    font-family: Georgia, serif; font-style: italic; font-size: 13px;
+    color: var(--dim); background: transparent; border: 1px solid transparent;
+    border-radius: var(--r); padding: 5px 9px; width: 170px; cursor: text;
+    margin-right: 4px;
+  }
+  #doc-name:hover { border-color: var(--line); }
+  #doc-name:focus { color: var(--ink); border-color: var(--line); outline: none; }
+  .b-note { color: var(--sel); border-color: #2E3B22; }
+  .b-note:hover { border-color: var(--sel); color: var(--sel); background: #1A2410; }
+  #back-btn:disabled, #back-btn[disabled] { opacity: 0.35; cursor: default; }
+  #back-btn:disabled:hover { color: var(--dim); border-color: var(--line); }
+
   button, input[type=number] {
     font-family: 'Courier New', monospace; font-size: 12.5px;
     background: transparent; color: var(--dim);
@@ -219,7 +232,77 @@
     .redex:hover circle { r: 15; }
   }
 
-  @media (max-width: 720px) { aside { display: none; } }
+  /* ---------- zoom control ---------- */
+  #zoom-ctrl {
+    position: absolute; left: 12px; bottom: 12px; z-index: 4;
+    display: flex; align-items: center; gap: 2px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 999px;
+    padding: 3px; box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+  #zoom-ctrl button {
+    width: 26px; height: 26px; padding: 0; border-radius: 50%; border: none;
+    font-family: 'Courier New', monospace; font-size: 14px; color: var(--dim);
+  }
+  #zoom-ctrl button:hover { color: var(--ink); background: rgba(255,255,255,0.06); }
+  #zoom-pct {
+    font-family: 'Courier New', monospace; font-size: 11px; color: var(--dim);
+    width: 42px; text-align: center; cursor: pointer; user-select: none;
+  }
+  #zoom-pct:hover { color: var(--ink); }
+
+  /* ---------- notes / labels ---------- */
+  .note-body { fill: #1E1B0E; stroke: var(--sel); stroke-width: 1; stroke-dasharray: 3 3; rx: 6; }
+  .note-text { font-family: 'Courier New', monospace; font-size: 12px; fill: var(--sel); pointer-events: none; }
+  .note-resize { fill: var(--sel); opacity: 0.4; cursor: nwse-resize; }
+  .note-resize:hover { opacity: 0.9; }
+
+  /* ---------- mobile / touch ---------- */
+  #aside-toggle { display: none; }
+  #aside-backdrop {
+    display: none; position: fixed; inset: 0; z-index: 19;
+    background: rgba(0,0,0,0.45);
+  }
+  @media (max-width: 820px) {
+    aside {
+      display: flex; position: fixed; top: 0; right: -290px; bottom: 0; z-index: 20;
+      width: 280px; max-width: 85vw;
+      transition: right 0.2s ease; box-shadow: -8px 0 24px rgba(0,0,0,0.5);
+    }
+    aside.open { right: 0; }
+    aside.open ~ #aside-backdrop, body.aside-open #aside-backdrop { display: block; }
+    #aside-toggle {
+      display: flex; position: absolute; right: 12px;
+      bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 4;
+      width: 46px; height: 46px; border-radius: 50%;
+      align-items: center; justify-content: center;
+      background: var(--panel); border: 1px solid var(--line);
+      font-family: Georgia, serif; font-style: italic; font-size: 17px; color: var(--ink);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+    /* header collapses to a single horizontally-scrollable row —
+       much better than wrapping into a 4-row stack on narrow screens */
+    header {
+      flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden;
+      padding: 8px 10px; gap: 6px;
+      -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    }
+    header::-webkit-scrollbar { display: none; }
+    header .spacer { display: none; }
+    h1 { font-size: 15px; }
+    #doc-name { width: 104px; flex: 0 0 auto; }
+    button, input[type=number] { padding: 9px 12px; flex: 0 0 auto; white-space: nowrap; }
+    /* rails scroll sideways instead of stacking */
+    .rail {
+      flex-wrap: nowrap; overflow-x: auto; padding: 8px 10px;
+      -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    }
+    .rail::-webkit-scrollbar { display: none; }
+    .chip { flex: 0 0 auto; white-space: nowrap; }
+    #zoom-ctrl { bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+    #zoom-ctrl button { width: 34px; height: 34px; }
+    #info { left: 10px; right: 10px; max-width: none; max-height: 70vh; overflow-y: auto; }
+    #corner-credit { display: none; }
+  }
 
   #corner-credit {
     position: fixed; right: 10px; bottom: 8px; z-index: 5;
@@ -304,17 +387,20 @@
 
 <header>
   <h1>interaction <span class="sym">nets</span></h1>
+  <input id="doc-name" type="text" data-i18n-placeholder="ph_docname" spellcheck="false">
   <span class="arity-wrap"><span data-i18n="lbl_aux">aux</span> <input id="arity" type="number" min="1" max="8" value="2"
     data-i18n-title="tip_aux"></span>
   <button class="b-gamma" onclick="addAgent('g')">+ γ</button>
   <button class="b-delta" onclick="addAgent('d')">+ δ</button>
   <button class="b-eps"   onclick="addAgent('e')">+ ε</button>
+  <button class="b-note"  onclick="addNote()" data-i18n="btn_note" data-i18n-title="tip_note">+ note ▤</button>
   <span class="spacer"></span>
+  <button id="back-btn" class="b-go" onclick="stepBack()" data-i18n="btn_back" data-i18n-title="tip_back" disabled>← back</button>
   <button class="b-go" onclick="stepOnce()" data-i18n="btn_step">step →</button>
   <button class="b-go" id="run-btn" onclick="toggleRun()" data-i18n="btn_run">run ▸</button>
   <button class="b-go" onclick="reduceAll()" data-i18n="btn_all">all ⇒</button>
   <button onclick="saveBlock()" data-i18n="btn_saveblock">save block ⧉</button>
-  <button onclick="saveCurrent()" data-i18n="btn_savenet">save net ✚</button>
+  <button onclick="saveCurrent()" data-i18n="btn_savenet" data-i18n-title="tip_savenet">save net ✚</button>
   <button onclick="exportSVG()" data-i18n="btn_svg" data-i18n-title="tip_svg">svg ↓</button>
   <button onclick="exportPNG()" data-i18n="btn_png" data-i18n-title="tip_png">png ↓</button>
   <button onclick="clearAll()" data-i18n="btn_clear">clear</button>
@@ -331,8 +417,14 @@
 <main>
   <div id="board-wrap">
     <svg id="board" aria-label="Interaction net drawing area"></svg>
+    <div id="zoom-ctrl">
+      <button onclick="zoomBy(1/1.25)" data-i18n-title="tip_zoomout" aria-label="zoom out">−</button>
+      <span id="zoom-pct" onclick="zoomReset()" data-i18n-title="tip_zoomreset">100%</span>
+      <button onclick="zoomBy(1.25)" data-i18n-title="tip_zoomin" aria-label="zoom in">+</button>
+    </div>
+    <button id="aside-toggle" onclick="toggleAside()" data-i18n-title="tip_asidetoggle" aria-label="toggle panel">☰</button>
   </div>
-  <aside>
+  <aside id="side-panel">
     <div class="tabs" role="tablist">
       <button class="tab on" id="tab-hist" role="tab" aria-selected="true"
         onclick="showTab('hist')" data-i18n="tab_hist">history</button>
@@ -343,6 +435,8 @@
     <div id="saved" class="pane"></div>
   </aside>
 </main>
+
+<div id="aside-backdrop" onclick="toggleAside()"></div>
 
 <div class="rail" id="blocks-rail"></div>
 <div class="rail" id="presets"></div>
@@ -365,6 +459,17 @@ let hoverId = null;
 let VW = 1200, VH = 760;
 let selectedWire = null; /* "id:port|id:port" of a clicked wire, awaiting delete */
 
+/* ---------- pan / zoom ---------- */
+let panX = 0, panY = 0, zoom = 1;
+let spaceHeld = false;
+const activePointers = new Map(); /* pointerId -> {x,y} in screen (client) coords, for pinch/touch */
+
+/* ---------- document name ---------- */
+let docName = '';
+
+/* last point clicked on empty canvas space — new nets/blocks get placed here */
+let lastEmptyX = null, lastEmptyY = null;
+
 /* =====================================================================
    i18n — UI text only. Runtime/computation vocabulary (reduction labels
    like "annihilation"/"commutation", agent symbols γ/δ/ε, preset/block
@@ -379,8 +484,12 @@ const INFO_EN = `
      <span class="e">ε</span> is arity 0. Identity = <i>symbol + arity</i>.</p>
   <p><b>Sandbox coverage:</b> for now just <span class="g">γ</span>, <span class="d">δ</span> and
      <span class="e">ε</span> — Lafont's classic combinators. But nothing locks you to them:
-     build your own nets and, with “save block ⧉”, pack any piece into a reusable block.</p>
+     build your own nets and, with “save block ⧉”, pack any piece into a reusable block.
+     Clicking a saved net, preset, or block drops a copy at the last spot you clicked on
+     empty canvas — it never wipes what's already there.</p>
   <p><b>Reduction:</b> <span class="a">red wires</span> (principal↔principal) are active pairs.
+     Click anywhere on a <span class="a">red wire</span> (or its ↯ badge) to compute that
+     specific step ·
      · same symbol &amp; arity → <b>annihilation</b> (aux i ↔ aux i)
      · anything else → <b>commutation</b> (cross-duplication; erasure = commuting with ε).</p>
   <p><b>Computing:</b> click a ↯ for one chosen pair ·
@@ -402,7 +511,13 @@ const INFO_EN = `
      <kbd>delete</kbd> removes the whole selection. Stamped blocks come pre-selected,
      so you can drop them right where you want.</p>
   <p><b>Other controls:</b> hover an agent and hit <kbd>r</kbd> / <kbd>shift·r</kbd> to rotate.
-     Nets and blocks are cached locally in your browser.</p>`;
+     Nets and blocks are cached locally in your browser.</p>
+  <p><b>Canvas &amp; notes:</b> name the canvas up top (used for exports and as the default
+     save-net name) · <b>+ note ▤</b> drops a text label — double-click one to edit it,
+     drag its bottom-right corner to resize; notes are purely visual and never wire up or
+     react to reductions · scroll to zoom, middle-click/spacebar-drag (or two fingers on
+     touch) to pan · <b>← back</b> (or the ← key) un-computes the last reduction step ·
+     <kbd>ctrl</kbd>/<kbd>⌘</kbd>+<kbd>s</kbd> saves the net.</p>`;
 
 const INFO_PT = `
   <p><b>Agentes têm n + 1 portas:</b> uma <b>principal</b> (na ponta) e n auxiliares.
@@ -411,8 +526,11 @@ const INFO_PT = `
   <p><b>Cobertura do sandbox:</b> por enquanto só <span class="g">γ</span>, <span class="d">δ</span> e
      <span class="e">ε</span> — os combinators clássicos de Lafont. Mas nada te prende a eles:
      monte suas próprias redes e, com “save block ⧉”, empacote qualquer trecho em um bloco
-     reutilizável pra usar depois.</p>
+     reutilizável pra usar depois. Clicar numa rede salva, predefinição ou bloco coloca uma
+     cópia no último ponto vazio do quadro que você clicou — nunca apaga o que já tá lá.</p>
   <p><b>Redução:</b> <span class="a">fios vermelhos</span> (principal↔principal) são pares ativos.
+     Clique em qualquer ponto do <span class="a">fio vermelho</span> (ou no badge ↯) pra computar
+     aquele passo específico ·
      · mesmo símbolo e aridade → <b>aniquilação</b> (aux i ↔ aux i)
      · qualquer outro caso → <b>comutação</b> (duplicação cruzada; apagamento = comutar com ε).</p>
   <p><b>Computando:</b> clique num ↯ pra reduzir aquele par específico ·
@@ -434,13 +552,20 @@ const INFO_PT = `
      <kbd>delete</kbd> apaga a seleção inteira. Blocos vêm pré-selecionados ao serem
      carimbados, então já é só arrastar pro lugar.</p>
   <p><b>Outros controles:</b> passe o mouse sobre um agente e aperte <kbd>r</kbd> /
-     <kbd>shift·r</kbd> pra rotacionar. Redes e blocos ficam salvos localmente no navegador.</p>`;
+     <kbd>shift·r</kbd> pra rotacionar. Redes e blocos ficam salvos localmente no navegador.</p>
+  <p><b>Quadro e notas:</b> dê um nome ao quadro lá em cima (usado nas exportações e como
+     nome padrão ao salvar a rede) · <b>+ nota ▤</b> coloca um label de texto — duplo-clique
+     pra editar, arraste o cantinho inferior direito pra redimensionar; notas são só visuais
+     e nunca se conectam nem reagem a reduções · use a roda do mouse pra dar zoom, clique
+     do meio/segurar espaço e arrastar (ou dois dedos no touch) pra mover o quadro ·
+     <b>← voltar</b> (ou a tecla ←) desfaz o último passo de redução ·
+     <kbd>ctrl</kbd>/<kbd>⌘</kbd>+<kbd>s</kbd> salva a rede.</p>`;
 
 const I18N = {
   en: {
     lbl_aux: 'aux', tip_aux: 'number of auxiliary ports for new γ/δ agents',
     btn_step: 'step →', btn_run: 'run ▸', btn_stop: 'stop ■', btn_all: 'all ⇒',
-    btn_saveblock: 'save block ⧉', btn_savenet: 'save net ✚',
+    btn_saveblock: 'save block ⧉', btn_savenet: 'save net ✚', tip_savenet: 'save this net (ctrl/⌘+S)',
     btn_svg: 'svg ↓', btn_png: 'png ↓', btn_clear: 'clear',
     tip_svg: 'vector — opens without losing quality at any zoom',
     tip_png: 'high-resolution image (3×)', tip_info: 'how it works',
@@ -448,7 +573,7 @@ const I18N = {
     blocks_empty: 'select a group (or build a net) and hit “save block ⧉”',
     tip_iface: n => `${n} interface port${n === 1 ? '' : 's'}`,
     tip_remove_block: 'remove block', tip_remove_preset: 'remove preset', tip_delete: 'delete',
-    saved_mynets: 'my nets — click to load',
+    saved_mynets: 'my nets — click to place on the board',
     saved_mynets_empty: 'none yet — build something and hit “save net ✚”',
     saved_blocks: 'blocks — click to stamp onto the board',
     saved_blocks_empty: 'none yet — select a group and hit “save block ⧉”',
@@ -482,11 +607,19 @@ const I18N = {
     greet_morning: 'Good morning', greet_afternoon: 'Good afternoon', greet_evening: 'Good evening',
     w_tag: 'a playground for interaction nets.', w_enter: 'enter →',
     info_html: INFO_EN,
+    ph_docname: 'untitled net', title_untitled: 'Interaction nets — sandbox',
+    btn_note: '+ note ▤', tip_note: 'add a text note/label to the canvas',
+    prompt_note: 'note text:', prompt_note_default: '(empty note)',
+    msg_note_added: 'note added — double-click it to edit',
+    btn_back: '← back', tip_back: 'step back one reduction (← key)',
+    msg_no_back: 'nothing to step back to', msg_stepped_back: '← stepped back',
+    tip_zoomout: 'zoom out', tip_zoomreset: 'reset zoom (click)', tip_zoomin: 'zoom in',
+    tip_asidetoggle: 'toggle history / saved-nets panel',
   },
   pt: {
     lbl_aux: 'aux', tip_aux: 'número de portas auxiliares para novos agentes γ/δ',
     btn_step: 'passo →', btn_run: 'rodar ▸', btn_stop: 'parar ■', btn_all: 'tudo ⇒',
-    btn_saveblock: 'salvar bloco ⧉', btn_savenet: 'salvar rede ✚',
+    btn_saveblock: 'salvar bloco ⧉', btn_savenet: 'salvar rede ✚', tip_savenet: 'salvar esta rede (ctrl/⌘+S)',
     btn_svg: 'svg ↓', btn_png: 'png ↓', btn_clear: 'limpar',
     tip_svg: 'vetorial — abre sem perder qualidade em qualquer zoom',
     tip_png: 'imagem em alta resolução (3×)', tip_info: 'como funciona',
@@ -494,7 +627,7 @@ const I18N = {
     blocks_empty: 'selecione um grupo (ou monte uma rede) e clique em “save block ⧉”',
     tip_iface: n => `${n} porta${n === 1 ? '' : 's'} de interface`,
     tip_remove_block: 'remover bloco', tip_remove_preset: 'remover predefinição', tip_delete: 'apagar',
-    saved_mynets: 'minhas redes — clique pra carregar',
+    saved_mynets: 'minhas redes — clique pra colocar no quadro',
     saved_mynets_empty: 'nenhuma ainda — monte algo e clique em “save net ✚”',
     saved_blocks: 'blocos — clique pra carimbar no quadro',
     saved_blocks_empty: 'nenhum ainda — selecione um grupo e clique em “save block ⧉”',
@@ -528,6 +661,14 @@ const I18N = {
     greet_morning: 'Bom dia', greet_afternoon: 'Boa tarde', greet_evening: 'Boa noite',
     w_tag: 'um playground pra brincar com interaction nets.', w_enter: 'entrar →',
     info_html: INFO_PT,
+    ph_docname: 'rede sem nome', title_untitled: 'Interaction nets — sandbox',
+    btn_note: '+ nota ▤', tip_note: 'adiciona uma nota/label de texto no quadro',
+    prompt_note: 'texto da nota:', prompt_note_default: '(nota vazia)',
+    msg_note_added: 'nota adicionada — duplo-clique pra editar',
+    btn_back: '← voltar', tip_back: 'volta uma redução (tecla ←)',
+    msg_no_back: 'nada pra voltar', msg_stepped_back: '← voltou um passo',
+    tip_zoomout: 'diminuir zoom', tip_zoomreset: 'resetar zoom (clique)', tip_zoomin: 'aumentar zoom',
+    tip_asidetoggle: 'abrir/fechar painel de histórico / redes salvas',
   },
 };
 
@@ -541,6 +682,7 @@ function applyLang() {
   document.documentElement.lang = LANG;
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = t(el.dataset.i18nTitle); });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.dataset.i18nPlaceholder); });
   const infoEl = document.getElementById('info');
   if (infoEl) infoEl.innerHTML = t('info_html');
   const greetEl = document.getElementById('welcome-greet');
@@ -552,6 +694,7 @@ function applyLang() {
   if (runBtn) runBtn.textContent = typeof running !== 'undefined' && running ? t('btn_stop') : t('btn_run');
   document.documentElement.style.setProperty('--i18n-hist-empty', JSON.stringify(t('hist_empty')));
   document.documentElement.style.setProperty('--i18n-saved-empty', JSON.stringify(t('saved_empty')));
+  syncTitle();
   if (typeof renderRails === 'function' && typeof blocks !== 'undefined') renderRails();
 }
 
@@ -584,20 +727,52 @@ function undo() {
   draw();
 }
 
+/* ---------- computation history (step-back through reductions) ----------
+   Separate from undoStack (which only covers user edits: wiring, moves,
+   deletes). This one snapshots the net immediately before each rewrite so
+   "← back" can un-compute a redex and walk backwards through the run. */
+const reductionStack = [];
+function pushReduction() {
+  reductionStack.push(cloneState());
+  if (reductionStack.length > 500) reductionStack.shift();
+  syncBackBtn();
+}
+function clearReductions() { reductionStack.length = 0; syncBackBtn(); }
+function syncBackBtn() {
+  const b = document.getElementById('back-btn');
+  if (b) b.disabled = reductionStack.length === 0;
+}
+function stepBack() {
+  if (!reductionStack.length) { say(t('msg_no_back')); return; }
+  if (running) toggleRun();
+  const st = reductionStack.pop();
+  nodes.clear(); for (const [id, n] of st.nodes) nodes.set(id, n);
+  wires.clear(); for (const [k, o] of st.wires) wires.set(k, o);
+  nid = st.nid;
+  rescanRedexes();
+  syncBackBtn();
+  say(t('msg_stepped_back'));
+  draw();
+}
+
 const NAME = { g: 'γ', d: 'δ', e: 'ε' };
 const SUB = '₀₁₂₃₄₅₆₇₈₉';
-const tag = n => NAME[n.t] + (n.t === 'e' ? '' : SUB[n.ar] || n.ar);
-const PORTS = n => ['p', ...Array.from({ length: n.ar }, (_, i) => String(i))];
-const HIT = 14;
+const tag = n => n.t === 'note' ? 'note' : NAME[n.t] + (n.t === 'e' ? '' : SUB[n.ar] || n.ar);
+const PORTS = n => n.t === 'note' ? [] : ['p', ...Array.from({ length: n.ar }, (_, i) => String(i))];
+/* touch screens get bigger hit targets for ports and wires */
+const COARSE = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+const HIT = COARSE ? 22 : 14;
+const WIRE_HIT = COARSE ? 24 : 14;
 const SPACING = 30;
+const STUB = 13; /* how far the free-port dot sits beyond the port anchor */
 
 const C = {
   g: ['#16203C', '#7C9EF5'], d: ['#35220E', '#F0A45C'], e: ['#1C1F23', '#9AA3AC'],
   wire: '#C9C9D2', active: '#F26D6D', activeBg: '#331214',
-  dim: '#8B8B96', bg: '#060608', dot: 'rgba(255,255,255,0.14)'
+  dim: '#8B8B96', bg: '#060608', dot: 'rgba(255,255,255,0.14)', sel: '#C7F07C', note: '#1E1B0E'
 };
 
-function halfW(n) { return Math.max(26, ((n.ar - 1) / 2) * SPACING + 16); }
+function halfW(n) { return n.t === 'note' ? (n.w || 160) / 2 : Math.max(26, ((n.ar - 1) / 2) * SPACING + 16); }
 
 function baseOffset(n, port) {
   const flip = n.t === 'd' ? -1 : 1;
@@ -619,6 +794,17 @@ function portXY(n, port) {
   return [n.x + dx, n.y + dy];
 }
 
+/* Display/grab position of a port. Wired ports sit exactly at portXY (where
+   the wire attaches). Free ports display a dashed stub ending in a dot STUB px
+   farther out — the ring, hit circle, snap detection, and drag origin all use
+   THIS position, so what you see is exactly what you grab. */
+function dispPortXY(id, n, port) {
+  const [px, py] = portXY(n, port);
+  if (wires.has(key(id, port))) return [px, py];
+  const dx = px - n.x, dy = py - n.y, len = Math.hypot(dx, dy) || 1;
+  return [px + dx / len * STUB, py + dy / len * STUB];
+}
+
 const key = (id, p) => id + ':' + p;
 const split = k => { const i = k.indexOf(':'); return [+k.slice(0, i), k.slice(i + 1)]; };
 
@@ -634,8 +820,52 @@ function plug(k1, k2) {
 }
 const peer = (id, p) => wires.get(key(id, p)) ?? null;
 
-function mk(t, x, y, rot = 0, ar = t === 'e' ? 0 : 2) {
-  const id = ++nid; nodes.set(id, { t, x, y, rot, ar }); return id;
+function mk(t, x, y, rot = 0, ar = t === 'e' ? 0 : 2, extra = null) {
+  const id = ++nid;
+  const n = { t, x, y, rot, ar };
+  if (t === 'note') { n.text = (extra && extra.text) || ''; n.w = (extra && extra.w) || 170; n.h = (extra && extra.h) || 70; }
+  nodes.set(id, n);
+  return id;
+}
+
+/* word-wrap plain text into lines that roughly fit width w (px) at ~7px/char monospace-ish estimate */
+function wrapNoteText(text, w) {
+  const maxChars = Math.max(6, Math.floor((w - 20) / 6.6));
+  const lines = [];
+  for (const raw of String(text).split('\n')) {
+    let line = raw;
+    while (line.length > maxChars) {
+      let cut = line.lastIndexOf(' ', maxChars);
+      if (cut <= 0) cut = maxChars;
+      lines.push(line.slice(0, cut));
+      line = line.slice(cut).trimStart();
+    }
+    lines.push(line);
+  }
+  return lines;
+}
+
+function addNote() {
+  pushUndo();
+  const text = prompt(t('prompt_note'), '');
+  if (text === null) { undoStack.pop(); return; }
+  const c = nodes.size;
+  const id = mk('note', 160 + (c % 6) * 40, 130 + Math.floor(c / 6) * 40, 0, 0, { text: text || t('prompt_note_default'), w: 170, h: 70 });
+  selection.clear(); selection.add(id);
+  draw();
+  say(t('msg_note_added'));
+}
+
+function editNote(id) {
+  const n = nodes.get(id);
+  if (!n) return;
+  const text = prompt(t('prompt_note'), n.text || '');
+  if (text === null) return;
+  pushUndo();
+  n.text = text;
+  const lines = wrapNoteText(text, n.w);
+  n.h = Math.max(50, lines.length * 16 + 24);
+  draw();
 }
 
 function rmNode(id) {
@@ -717,14 +947,17 @@ function reduceCore(idA, idB) {
 
 /* clicking a ↯: reduce that specific pair */
 function reduce(idA, idB) {
+  pushReduction();
   const msg = reduceCore(idA, idB);
-  if (msg) say(msg);
+  if (msg) say(msg); else reductionStack.pop();
+  syncBackBtn();
   draw();
 }
 
 function stepOnce() {
   const r = nextRedex();
   if (!r) { say(t('msg_no_active')); return; }
+  pushReduction();
   say(reduceCore(r[0], r[1]));
   draw();
 }
@@ -739,21 +972,25 @@ function toggleRun() {
   running = setInterval(() => {
     const r = nextRedex();
     if (!r) { toggleRun(); say(t('msg_normal_form')); return; }
+    pushReduction();
     say(reduceCore(r[0], r[1]));
     draw();
   }, 160);
 }
 
-/* all ⇒ : instant — no intermediate draws, history appended in one batch */
+/* all ⇒ : instant — no intermediate draws, history appended in one batch.
+   Kept as a single step-back entry (undoing "all" restores the pre-batch net). */
 function reduceAll() {
   const t0 = performance.now();
   const msgs = [];
   let r, steps = 0;
+  pushReduction(); /* one snapshot for the whole batch; popped below if nothing ran */
   while ((r = nextRedex()) && steps < 20000) {
     const m = reduceCore(r[0], r[1]);
     if (m) msgs.push(m);
     steps++;
   }
+  if (steps === 0) { reductionStack.pop(); syncBackBtn(); }
   const ms = (performance.now() - t0).toFixed(1);
   msgs.push(steps ? t('msg_normal_form_steps', steps, ms) : t('msg_no_active'));
   sayBatch(msgs);
@@ -773,7 +1010,9 @@ function rescanRedexes() {
    Snapshots, presets, blocks.
    ===================================================================== */
 function snapshot() {
-  const ns = [...nodes.entries()].map(([id, n]) => [id, n.t, Math.round(n.x), Math.round(n.y), n.rot, n.ar]);
+  const ns = [...nodes.entries()].map(([id, n]) => n.t === 'note'
+    ? [id, n.t, Math.round(n.x), Math.round(n.y), n.rot, n.ar, { text: n.text, w: n.w, h: n.h }]
+    : [id, n.t, Math.round(n.x), Math.round(n.y), n.rot, n.ar]);
   const ws = [];
   const seen = new Set();
   for (const [k, o] of wires) {
@@ -786,8 +1025,8 @@ function snapshot() {
 /* stamp returns the new ids so callers can select them */
 function stamp(snap, dx = 0, dy = 0) {
   const map = new Map();
-  for (const [oldId, t, x, y, rot, ar] of snap.ns)
-    map.set(oldId, mk(t, x + dx, y + dy, rot || 0, ar ?? (t === 'e' ? 0 : 2)));
+  for (const [oldId, t, x, y, rot, ar, extra] of snap.ns)
+    map.set(oldId, mk(t, x + dx, y + dy, rot || 0, ar ?? (t === 'e' ? 0 : 2), extra || null));
   for (const [k1, k2] of snap.ws) {
     const [i1, p1] = split(k1), [i2, p2] = split(k2);
     plug(key(map.get(i1), p1), key(map.get(i2), p2));
@@ -798,6 +1037,51 @@ function stamp(snap, dx = 0, dy = 0) {
 }
 
 function restore(snap) { if (nodes.size) pushUndo(); clearAll(true); stamp(snap, 0, 0); }
+
+/* center of the current viewport, in canvas coordinates — accounts for pan/zoom */
+function viewCenter() { return [panX + (VW / zoom) / 2, panY + (VH / zoom) / 2]; }
+
+/* ε has a single port; point it toward whatever it's wired to so it doesn't
+   read as "backwards" relative to the connection (its offset is fixed
+   before rotation, so this picks whichever of the 4 quarter-turns faces
+   closest to the peer). No-op for anything that isn't a wired ε. */
+function orientEpsilon(id) {
+  const n = nodes.get(id);
+  if (!n || n.t !== 'e') return;
+  const o = wires.get(key(id, 'p'));
+  if (o === undefined) return;
+  const [pid, pport] = split(o);
+  const peer = nodes.get(pid);
+  if (!peer) return;
+  const [tx, ty] = portXY(peer, pport);
+  const angDeg = Math.atan2(ty - n.y, tx - n.x) * 180 / Math.PI;
+  let best = 0, bestDiff = Infinity;
+  for (let k = 0; k < 4; k++) {
+    const dirDeg = -90 + 90 * k; /* rot 0/1/2/3 → ε's port faces up/right/down/left */
+    const diff = Math.abs(((dirDeg - angDeg + 540) % 360) - 180);
+    if (diff < bestDiff) { bestDiff = diff; best = k; }
+  }
+  n.rot = best;
+}
+
+/* instantiate a saved net/preset at the last point clicked on empty canvas
+   (falls back to the current viewport center) instead of wiping the board */
+function instantiate(snap, name) {
+  pushUndo();
+  let cx = 0, cy = 0;
+  for (const [, , x, y] of snap.ns) { cx += x; cy += y; }
+  const cnt = snap.ns.length || 1;
+  cx /= cnt; cy /= cnt;
+  const [vx, vy] = viewCenter();
+  const tx = lastEmptyX !== null ? lastEmptyX : vx;
+  const ty = lastEmptyY !== null ? lastEmptyY : vy;
+  const newIds = stamp(snap, tx - cx, ty - cy);
+  newIds.forEach(orientEpsilon);
+  selection.clear();
+  newIds.forEach(id => selection.add(id));      /* pre-selected: drag into place if needed */
+  draw();
+  if (name) say(t('msg_loaded', name));
+}
 
 const builtins = [
   { name: 'γγ annihilate', pin: true, snap: { ns: [[1,'g',300,300,0,2],[2,'g',600,300,0,2]], ws: [['1:p','2:p']] } },
@@ -831,7 +1115,8 @@ function persist() {
 
 function saveCurrent() {
   if (nodes.size === 0) { say(t('msg_empty_save')); return; }
-  const name = prompt(t('prompt_preset'), t('prompt_preset_default', presets.filter(p => p.custom).length + 1));
+  const def = (docName && docName.trim()) || t('prompt_preset_default', presets.filter(p => p.custom).length + 1);
+  const name = prompt(t('prompt_preset'), def);
   if (!name) return;
   presets.push({ name: name.trim(), snap: snapshot(), custom: true, pin: false, ts: Date.now() });
   persist(); renderRails();
@@ -858,7 +1143,9 @@ function saveBlock() {
   cx = Math.round(cx / ids.length); cy = Math.round(cy / ids.length);
   const ns = ids.map(id => {
     const n = nodes.get(id);
-    return [id, n.t, Math.round(n.x) - cx, Math.round(n.y) - cy, n.rot, n.ar];
+    return n.t === 'note'
+      ? [id, n.t, Math.round(n.x) - cx, Math.round(n.y) - cy, n.rot, n.ar, { text: n.text, w: n.w, h: n.h }]
+      : [id, n.t, Math.round(n.x) - cx, Math.round(n.y) - cy, n.rot, n.ar];
   });
   const ws = [];
   const seen = new Set();
@@ -880,10 +1167,12 @@ let stampCount = 0;
 function useBlock(i) {
   pushUndo();
   const b = blocks[i];
-  const dx = VW / 2 + (stampCount % 5) * 28 - 56;
-  const dy = VH / 2 + (stampCount % 5) * 24 - 48;
+  const [vx, vy] = viewCenter();
+  const dx = vx + (stampCount % 5) * 28 - 56;
+  const dy = vy + (stampCount % 5) * 24 - 48;
   stampCount++;
   const newIds = stamp(b.snap, dx, dy);
+  newIds.forEach(orientEpsilon);
   selection.clear();
   newIds.forEach(id => selection.add(id));   /* pre-selected: drag into place */
   draw();
@@ -919,7 +1208,7 @@ function renderRails() {
     const x = p.pin ? '' :
       `<button class="x" title="${t('tip_remove_preset')}" aria-label="${t('tip_remove_preset')}: ${p.name}"
         onclick="event.stopPropagation(); deletePreset(${i})">×</button>`;
-    return `<span class="${cls}" onclick="restore(presets[${i}].snap); say(t('msg_loaded', '${p.name}'))">${p.name}${x}</span>`;
+    return `<span class="${cls}" onclick="instantiate(presets[${i}].snap, '${p.name}')">${p.name}${x}</span>`;
   }).join('');
 
   renderSaved();
@@ -949,7 +1238,7 @@ function renderSaved() {
   html += custom.length === 0
     ? `<div style="font-style:italic;opacity:0.5;margin-bottom:8px">${t('saved_mynets_empty')}</div>`
     : custom.map(([p, i]) =>
-      `<div class="net-item" onclick="restore(presets[${i}].snap); say(t('msg_loaded', '${p.name}'))">
+      `<div class="net-item" onclick="instantiate(presets[${i}].snap, '${p.name}')">
          <div class="nm">${p.name}
            <button class="del" title="${t('tip_delete')}" aria-label="${t('tip_delete')}: ${p.name}"
              onclick="event.stopPropagation(); deletePreset(${i})">×</button></div>
@@ -969,7 +1258,7 @@ function renderSaved() {
 
   html += `<div class="saved-sec">${t('saved_builtin')}</div>`;
   html += built.map(([p, i]) =>
-    `<div class="net-item builtin" onclick="restore(presets[${i}].snap); say(t('msg_loaded', '${p.name}'))">
+    `<div class="net-item builtin" onclick="instantiate(presets[${i}].snap, '${p.name}')">
        <div class="nm">${p.name}</div>
        <div class="meta">${snapMeta(p.snap)}</div>
      </div>`).join('');
@@ -993,9 +1282,10 @@ function showTab(which) {
 function exportBBox() {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   for (const n of nodes.values()) {
-    const m = halfW(n) + 24;
-    x0 = Math.min(x0, n.x - m); y0 = Math.min(y0, n.y - m);
-    x1 = Math.max(x1, n.x + m); y1 = Math.max(y1, n.y + m);
+    const mx = n.t === 'note' ? (n.w || 170) / 2 + 12 : halfW(n) + 24;
+    const my = n.t === 'note' ? (n.h || 70) / 2 + 12 : halfW(n) + 24;
+    x0 = Math.min(x0, n.x - mx); y0 = Math.min(y0, n.y - my);
+    x1 = Math.max(x1, n.x + mx); y1 = Math.max(y1, n.y + my);
   }
   const PAD = 40;
   const w = Math.max(x1 - x0 + PAD * 2, 320);
@@ -1025,20 +1315,28 @@ function buildExportSVG() {
   return { svg, w, h };
 }
 
+function slugName() {
+  const base = (docName || '').trim();
+  if (!base) return 'interaction-net';
+  return base.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'interaction-net';
+}
+
 function exportSVG() {
-  if (nodes.size === 0) { say('rede vazia — nada pra exportar'); return; }
+  if (nodes.size === 0) { say(t('msg_empty_export')); return; }
   const { svg } = buildExportSVG();
   const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'interaction-net.svg';
+  a.href = url; a.download = slugName() + '.svg';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-  say('svg exportado — vetorial, abre sem perder qualidade');
+  say(t('msg_svg_exported'));
 }
 
 function exportPNG() {
-  if (nodes.size === 0) { say('rede vazia — nada pra exportar'); return; }
+  if (nodes.size === 0) { say(t('msg_empty_export')); return; }
   const { svg, w, h } = buildExportSVG();
   /* data URI (not a blob URL) — the most reliably taint-free way to rasterize
      an inline SVG across browsers before drawing it to a canvas */
@@ -1059,19 +1357,23 @@ function exportPNG() {
     cx.drawImage(img, 0, 0, cv.width, cv.height);
     let dataUrl;
     try { dataUrl = cv.toDataURL('image/png'); }
-    catch (e) { say('export falhou: ' + e.message); return; }
+    catch (e) { say(t('msg_export_failed', e.message)); return; }
     const a = document.createElement('a');
-    a.href = dataUrl; a.download = 'interaction-net.png';
+    a.href = dataUrl; a.download = slugName() + '.png';
     document.body.appendChild(a); a.click(); a.remove();
-    say('png exportado (' + cv.width + '×' + cv.height + ')');
+    say(t('msg_png_exported', cv.width, cv.height));
   };
-  img.onerror = () => say('export falhou — tente exportar como svg');
+  img.onerror = () => say(t('msg_export_failed_retry'));
   img.src = svgData;
 }
 
 /* =====================================================================
    Rendering (shared board/export builder)
    ===================================================================== */
+function escXml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function colors(n, exp) {
   if (exp) return C[n.t];
   const v = n.t === 'g' ? 'gamma' : n.t === 'd' ? 'delta' : 'eps';
@@ -1088,6 +1390,26 @@ function buildSVG(w, h, ox, oy, exp) {
   const dimCol = exp ? C.dim : 'var(--dim)';
   const bgCol = exp ? C.bg : 'var(--bg)';
 
+  /* notes render first — a background layer, so wires and agents drawn
+     afterward always appear in front and stay easy to trace */
+  for (const [id, n] of nodes) {
+    if (n.t !== 'note') continue;
+    const x = n.x + ox, y = n.y + oy;
+    const w2 = n.w || 170, h2 = n.h || 70;
+    const lines = wrapNoteText(n.text || '', w2);
+    const lh = 16, ty0 = y - h2 / 2 + 18;
+    const open = exp ? '<g>' : `<g class="agent" data-node="${id}">`;
+    out.push(`${open}<rect class="note-body" x="${x - w2 / 2}" y="${y - h2 / 2}" width="${w2}" height="${h2}" rx="6"
+      fill="${exp ? C.note : ''}" stroke="${exp ? C.sel : ''}"/>
+      <text class="note-text" x="${x - w2 / 2 + 10}" y="${ty0}" ${exp ? `font-family="Courier New, monospace" font-size="12" fill="${C.sel}"` : ''}>
+      ${lines.map((ln, i) => `<tspan x="${x - w2 / 2 + 10}" dy="${i === 0 ? 0 : lh}">${escXml(ln)}</tspan>`).join('')}
+      </text></g>`);
+    if (!exp && selection.has(id)) {
+      out.push(`<rect class="halo" x="${x - w2 / 2 - 6}" y="${y - h2 / 2 - 6}" width="${w2 + 12}" height="${h2 + 12}" rx="9"/>`);
+      out.push(`<rect class="note-resize" data-resize="${id}" x="${x + w2 / 2 - 9}" y="${y + h2 / 2 - 9}" width="16" height="16" rx="3"/>`);
+    }
+  }
+
   for (const [k, o] of wires) {
     const pair = k < o ? k + '|' + o : o + '|' + k;
     if (seen.has(pair)) continue;
@@ -1100,13 +1422,14 @@ function buildSVG(w, h, ox, oy, exp) {
     const wsel = !exp && selectedWire === pair;
     if (!exp) {
       /* wider invisible hit-line so thin wires are easy to click */
-      out.push(`<line data-wire="${pair}" x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="transparent" stroke-width="14"/>`);
+      out.push(`<line data-wire="${pair}" x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="transparent" stroke-width="${WIRE_HIT}"/>`);
     }
     out.push(`<line ${exp ? '' : `class="wire${act ? ' active' : ''}${wsel ? ' wsel' : ''}" data-wire="${pair}"`} x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="${act ? actCol : wireCol}" stroke-width="${act ? 2.2 : 1.4}"/>`);
     if (act) {
       const mx = (ax + bx) / 2, my = (ay + by) / 2;
+      const rr = exp ? 13 : (COARSE ? 17 : 13);
       const open = exp ? '<g>' : `<g class="redex" onclick="reduce(${i1},${i2})">`;
-      out.push(`${open}<circle cx="${mx}" cy="${my}" r="13" fill="${actBg}" stroke="${actCol}" stroke-width="1.3"/>
+      out.push(`${open}<circle cx="${mx}" cy="${my}" r="${rr}" fill="${actBg}" stroke="${actCol}" stroke-width="1.3"/>
         <text x="${mx}" y="${my + 1}" text-anchor="middle" dominant-baseline="central" font-size="13" fill="${actCol}">↯</text></g>`);
     }
   }
@@ -1116,13 +1439,14 @@ function buildSVG(w, h, ox, oy, exp) {
       if (wires.has(key(id, p))) continue;
       const [px, py] = P(n, p);
       const dx = px - (n.x + ox), dy = py - (n.y + oy), len = Math.hypot(dx, dy) || 1;
-      const ex = px + dx / len * 13, ey = py + dy / len * 13;
+      const ex = px + dx / len * STUB, ey = py + dy / len * STUB;
       out.push(`<line ${exp ? '' : 'class="free"'} x1="${px}" y1="${py}" x2="${ex}" y2="${ey}" stroke="${dimCol}" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.7"/>
         <circle cx="${ex}" cy="${ey}" r="3" fill="${bgCol}" stroke="${dimCol}"/>`);
     }
   }
 
   for (const [id, n] of nodes) {
+    if (n.t === 'note') continue;
     const [fill, stroke] = colors(n, exp);
     const x = n.x + ox, y = n.y + oy;
     const hw = halfW(n);
@@ -1148,7 +1472,7 @@ function buildSVG(w, h, ox, oy, exp) {
     }
     if (!exp) {
       for (const p of PORTS(n)) {
-        const [px, py] = portXY(n, p);
+        const [px, py] = dispPortXY(id, n, p);
         let ringStroke = stroke, ringWidth = 1, ringOpacity = null, ringR = 6;
         if (drag && drag.mode === 'wire') {
           const fromId = split(drag.from)[0];
@@ -1228,6 +1552,7 @@ function clearAll(quiet) {
   redexQueue.length = 0;
   selectedWire = null;
   nid = 0; hoverId = null; stampCount = 0;
+  clearReductions();
   if (!quiet) histEl.innerHTML = '';
   draw();
 }
@@ -1235,7 +1560,32 @@ function clearAll(quiet) {
 function syncViewBox() {
   const r = board.getBoundingClientRect();
   if (r.width > 0 && r.height > 0) { VW = r.width; VH = r.height; }
-  board.setAttribute('viewBox', `0 0 ${VW} ${VH}`);
+  board.setAttribute('viewBox', `${panX} ${panY} ${VW / zoom} ${VH / zoom}`);
+  const pctEl = document.getElementById('zoom-pct');
+  if (pctEl) pctEl.textContent = Math.round(zoom * 100) + '%';
+}
+
+function zoomAt(factor, clientX, clientY) {
+  const pt = board.createSVGPoint();
+  pt.x = clientX; pt.y = clientY;
+  const before = pt.matrixTransform(board.getScreenCTM().inverse());
+  zoom = Math.max(0.15, Math.min(5, zoom * factor));
+  syncViewBox();
+  const after = pt.matrixTransform(board.getScreenCTM().inverse());
+  panX += before.x - after.x;
+  panY += before.y - after.y;
+  syncViewBox();
+}
+function zoomBy(factor) {
+  const r = board.getBoundingClientRect();
+  zoomAt(factor, r.left + r.width / 2, r.top + r.height / 2);
+  draw();
+}
+function zoomReset() { zoom = 1; panX = 0; panY = 0; syncViewBox(); draw(); }
+
+function toggleAside() {
+  const open = document.getElementById('side-panel').classList.toggle('open');
+  document.body.classList.toggle('aside-open', open);
 }
 window.addEventListener('resize', () => { syncViewBox(); draw(); });
 
@@ -1246,14 +1596,72 @@ function svgXY(ev) {
   return [p.x, p.y];
 }
 
+/* mouse-wheel zoom, centered on the cursor */
+board.addEventListener('wheel', ev => {
+  ev.preventDefault();
+  zoomAt(ev.deltaY > 0 ? 1 / 1.12 : 1.12, ev.clientX, ev.clientY);
+  draw();
+}, { passive: false });
+
+/* spacebar + drag pans the canvas, same as middle-click drag */
+window.addEventListener('keydown', ev => {
+  if (ev.code === 'Space' && ev.target.tagName !== 'INPUT') {
+    spaceHeld = true; board.style.cursor = 'grab';
+  }
+});
+window.addEventListener('keyup', ev => {
+  if (ev.code === 'Space') { spaceHeld = false; board.style.cursor = ''; }
+});
+
 board.addEventListener('pointerdown', ev => {
+  activePointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+  board.setPointerCapture(ev.pointerId);
+
+  /* two fingers down → pinch-to-zoom / two-finger pan (touch) */
+  if (activePointers.size === 2) {
+    const [p1, p2] = [...activePointers.values()];
+    drag = {
+      mode: 'pinch',
+      dist0: Math.hypot(p2.x - p1.x, p2.y - p1.y),
+      mid0: { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 },
+      zoom0: zoom, panX0: panX, panY0: panY
+    };
+    return;
+  }
+
+  /* middle-click or spacebar+drag → pan the canvas */
+  if (ev.button === 1 || spaceHeld) {
+    ev.preventDefault();
+    drag = { mode: 'pan', sx: ev.clientX, sy: ev.clientY, panX0: panX, panY0: panY };
+    board.style.cursor = 'grabbing';
+    return;
+  }
+
+  const resizeEl = ev.target.closest('[data-resize]');
+  if (resizeEl) {
+    const id = +resizeEl.dataset.resize;
+    const n = nodes.get(id);
+    if (n) {
+      const [x, y] = svgXY(ev);
+      drag = { mode: 'resize', id, w0: n.w || 170, h0: n.h || 70, x0: x, y0: y };
+    }
+    return;
+  }
+
   const el = ev.target.closest('[data-port],[data-node]');
   const wireEl = !el ? ev.target.closest('[data-wire]') : null;
   const [x, y] = svgXY(ev);
-  board.setPointerCapture(ev.pointerId);
 
-  if (wireEl) {                                 /* click a wire → select it */
-    selection.clear();
+  if (wireEl) {                                 /* click a wire */
+    const [k1, k2] = wireEl.dataset.wire.split('|');
+    const [i1, p1] = split(k1), [i2, p2] = split(k2);
+    if (p1 === 'p' && p2 === 'p' && nodes.has(i1) && nodes.has(i2)) {
+      /* active pair (red wire) → clicking it computes that specific step */
+      drag = null;
+      reduce(i1, i2);
+      return;
+    }
+    selection.clear();                          /* otherwise → select it for deletion */
     selectedWire = wireEl.dataset.wire;
     drag = null;
     draw();
@@ -1262,6 +1670,7 @@ board.addEventListener('pointerdown', ev => {
 
   if (!el) {                                    /* empty space → marquee */
     selectedWire = null;
+    lastEmptyX = x; lastEmptyY = y;
     if (!ev.shiftKey) selection.clear();
     drag = { mode: 'select', x0: x, y0: y, x, y };
     draw();
@@ -1270,7 +1679,7 @@ board.addEventListener('pointerdown', ev => {
   selectedWire = null;
   if (el.dataset.port) {
     const [id, p] = split(el.dataset.port);
-    const [px, py] = portXY(nodes.get(id), p);
+    const [px, py] = dispPortXY(id, nodes.get(id), p);
     drag = { mode: 'wire', from: el.dataset.port, x0: px, y0: py, x, y };
     draw();
     return;
@@ -1294,6 +1703,40 @@ board.addEventListener('pointerdown', ev => {
 });
 
 board.addEventListener('pointermove', ev => {
+  if (activePointers.has(ev.pointerId)) activePointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+
+  if (drag && drag.mode === 'pan') {
+    panX = drag.panX0 - (ev.clientX - drag.sx) / zoom;
+    panY = drag.panY0 - (ev.clientY - drag.sy) / zoom;
+    syncViewBox();
+    draw();
+    return;
+  }
+  if (drag && drag.mode === 'pinch') {
+    const [p1, p2] = [...activePointers.values()];
+    if (p1 && p2) {
+      const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y) || 1;
+      const mid = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+      zoom = Math.max(0.15, Math.min(5, drag.zoom0 * (dist / drag.dist0)));
+      panX = drag.panX0 - (mid.x - drag.mid0.x) / zoom;
+      panY = drag.panY0 - (mid.y - drag.mid0.y) / zoom;
+      syncViewBox();
+      draw();
+    }
+    return;
+  }
+
+  if (drag && drag.mode === 'resize') {
+    const [x, y] = svgXY(ev);
+    const n = nodes.get(drag.id);
+    if (n) {
+      n.w = Math.max(90, Math.round(drag.w0 + (x - drag.x0) * 2));
+      n.h = Math.max(40, Math.round(drag.h0 + (y - drag.y0) * 2));
+    }
+    draw();
+    return;
+  }
+
   const agentEl = ev.target.closest('[data-node]');
   hoverId = agentEl ? +agentEl.dataset.node : hoverId;
   if (!agentEl && !drag) {
@@ -1318,6 +1761,13 @@ board.addEventListener('pointermove', ev => {
 });
 
 board.addEventListener('pointerup', ev => {
+  activePointers.delete(ev.pointerId);
+  if (drag && (drag.mode === 'pan' || drag.mode === 'pinch')) {
+    drag = null;
+    board.style.cursor = spaceHeld ? 'grab' : '';
+    return;
+  }
+  if (drag && drag.mode === 'resize') { drag = null; draw(); return; }
   if (!drag) return;
   const [x, y] = svgXY(ev);
 
@@ -1336,7 +1786,7 @@ board.addEventListener('pointerup', ev => {
     for (const [id, n] of nodes) {
       if (id === fromId) continue;
       for (const p of PORTS(n)) {
-        const [px, py] = portXY(n, p);
+        const [px, py] = dispPortXY(id, n, p);
         const dist = Math.hypot(px - x, py - y);
         if (dist < best) { best = dist; hit = key(id, p); }
       }
@@ -1348,9 +1798,28 @@ board.addEventListener('pointerup', ev => {
   draw();
 });
 
+board.addEventListener('pointercancel', ev => {
+  activePointers.delete(ev.pointerId);
+  drag = null;
+  board.style.cursor = spaceHeld ? 'grab' : '';
+});
+
 board.addEventListener('dblclick', ev => {
   const el = ev.target.closest('[data-node]');
-  if (el) { pushUndo(); rmNode(+el.dataset.node); draw(); }
+  if (!el) return;
+  const id = +el.dataset.node;
+  const n = nodes.get(id);
+  if (n && n.t === 'note') { editNote(id); return; }
+  pushUndo(); rmNode(id); draw();
+});
+
+/* Ctrl/Cmd+S saves the current net as a custom preset — works even while
+   the canvas-name field is focused, unlike the other shortcuts below. */
+window.addEventListener('keydown', ev => {
+  if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 's') {
+    ev.preventDefault();
+    saveCurrent();
+  }
 });
 
 window.addEventListener('keydown', ev => {
@@ -1359,6 +1828,12 @@ window.addEventListener('keydown', ev => {
   if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'z') {
     ev.preventDefault();
     undo();
+    return;
+  }
+
+  if (ev.key === 'ArrowLeft' && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
+    ev.preventDefault();
+    stepBack();
     return;
   }
 
@@ -1388,6 +1863,7 @@ window.addEventListener('keydown', ev => {
   if (ev.key.toLowerCase() === 'r' && !ev.metaKey && !ev.ctrlKey) {
     if (hoverId === null || !nodes.has(hoverId)) return;
     const n = nodes.get(hoverId);
+    if (n.t === 'note') return; /* notes are inert annotations — no rotation */
     n.rot = (n.rot + (ev.shiftKey ? 3 : 1)) & 3;
     say(tag(n) + ' rotated ' + (ev.shiftKey ? '↺' : '↻') + ' (' + n.rot * 90 + '°)');
     draw();
@@ -1421,8 +1897,32 @@ window.addEventListener('keydown', ev => {
     closeWelcome();
 });
 
+/* =====================================================================
+   Document / canvas naming — used for the tab title and as the base
+   filename when exporting to SVG or PNG.
+   ===================================================================== */
+function syncTitle() {
+  document.title = (docName && docName.trim())
+    ? docName.trim() + ' — interaction nets'
+    : t('title_untitled');
+}
+function loadDocName() {
+  try { docName = localStorage.getItem('inet-doc-name') || ''; } catch (e) { docName = ''; }
+  const el = document.getElementById('doc-name');
+  if (el) el.value = docName;
+  syncTitle();
+}
+const docNameInput = document.getElementById('doc-name');
+docNameInput.addEventListener('input', () => {
+  docName = docNameInput.value;
+  try { localStorage.setItem('inet-doc-name', docName); } catch (e) { }
+  syncTitle();
+});
+docNameInput.addEventListener('keydown', ev => { if (ev.key === 'Enter') docNameInput.blur(); });
+
 syncViewBox();
 loadCache();
+loadDocName();
 renderRails();
 restore(presets[1].snap);
 undoStack.length = 0; /* loading the default preset shouldn't be the first undo step */

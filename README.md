@@ -32,23 +32,7 @@ The environment focuses on three fundamental agents, allowing the construction o
 
 ---
 
-## Possible Upcoming Additions
-
-### 1. Enhanced Canvas Navigation & Naming
-* **Document/Project Naming:** Add a feature to name the current canvas/document at the top of the screen. This will make it easier to organize saved workspaces and will automatically name the files when exporting to SVG or PNG.
-* **Enable lables and notes in sandbox:** I just realized this one is important for prototype and let things clearer so I will implement soon.
-* **Canvas Panning (Infinite Board):** Allow users to "grab" the empty background (using middle-click or spacebar + drag) to pan the camera around. This will give users an infinite canvas to build massive, complex nets without running out of screen space.
-* **Zoom Controls:** Implement mouse-wheel zoom in/out to get a bird's-eye view of large computations or zoom in on specific redexes.
-
-### 2. Mobile & Touch Support
-* **Touch Gestures:** Fully support mobile devices and tablets by adding native touch gestures, such as two-finger panning to move the camera and pinch-to-zoom.
-* **Mobile-Friendly UI:** Overhaul the layout for smaller screens, including collapsible sidebars, floating action buttons (FABs) for adding agents, and larger hitboxes for ports and wires to make touch interactions precise and comfortable.
-
-### 3. Computation History (Time-Travel Debugging)
-* **Undo Reductions (Step Back):** Currently, `Ctrl+Z` only undoes user actions (wiring, deleting, moving). The engine could be expanded to store a reversible history of the computations themselves.
-* **Timeline Navigation:** Add "Step Back (←)" buttons to un-compute active pairs, tracking the network's topology exactly as it was before the rewrite rule was applied.
-
-### 4. New Operators and Visual Upgrades
+### 1. New Operators and Visual Upgrades
 * **Arithmetic & Primitive Operators:** Addition of native numerical agents (e.g., Integer nodes) and arithmetic operators (`+`, `-`, `*`), as well as booleans and lists.
 * **Visual Grouping (Black Box):** Allow saved blocks to be rendered on the main board as single compact "Boxes" (with hanging ports) to hide internal complexity. These could be "expanded" with a double-click.
 * **Auto-Alignment (Snap to Grid):** An automatic alignment tool for wires and agents to keep diagrams perfectly organized.
