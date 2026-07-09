@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="569.1938934326172" height="346" viewBox="0 0 569.1938934326172 346"><rect x="0" y="0" width="569.1938934326172" height="346" fill="#060608"/><g><rect class="note-body" x="52" y="52" width="222" height="242" rx="6"
+      fill="#1E1B0E" stroke="#C7F07C"/>
+      <text class="note-text" x="62" y="70" font-family="Courier New, monospace" font-size="12" fill="#C7F07C">
+      <tspan x="62" dy="0">True</tspan>
+      </text></g><g><rect class="note-body" x="293.1938934326172" y="53.67974853515625" width="224" height="238" rx="6"
+      fill="#1E1B0E" stroke="#C7F07C"/>
+      <text class="note-text" x="303.1938934326172" y="71.67974853515625" font-family="Courier New, monospace" font-size="12" fill="#C7F07C">
+      <tspan x="303.1938934326172" dy="0">False</tspan>
+      </text></g><line  x1="170.1504695486169" y1="228.33380498030732" x2="140.0325496267419" y2="202.6432227049167" stroke="#C9C9D2" stroke-width="1.4"/><line  x1="200.1504695486169" y1="228.33380498030732" x2="125.03254962674191" y2="163.6432227049167" stroke="#C9C9D2" stroke-width="1.4"/><line  x1="155.0325496267419" y1="163.6432227049167" x2="177.0325496267419" y2="140.6432227049167" stroke="#C9C9D2" stroke-width="1.4"/><line  x1="411.0725886892419" y1="220.07285679915498" x2="356.2650935720544" y2="162.15505589583466" stroke="#C9C9D2" stroke-width="1.4"/><line  x1="441.0725886892419" y1="220.07285679915498" x2="371.2650935720544" y2="201.15505589583466" stroke="#C9C9D2" stroke-width="1.4"/><line  x1="386.2650935720544" y1="162.15505589583466" x2="349.1969783376794" y2="132.41833104231904" stroke="#C9C9D2" stroke-width="1.4"/><line  x1="185.1504695486169" y1="267.3338049803073" x2="185.1504695486169" y2="280.3338049803073" stroke="#8B8B96" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.7"/>
+        <circle cx="185.1504695486169" cy="280.3338049803073" r="3" fill="#060608" stroke="#8B8B96"/><line  x1="426.0725886892419" y1="259.072856799155" x2="426.0725886892419" y2="272.072856799155" stroke="#8B8B96" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.7"/>
+        <circle cx="426.0725886892419" cy="272.072856799155" r="3" fill="#060608" stroke="#8B8B96"/><g><polygon points="154.1504695486169,227.33380498030732 216.1504695486169,227.33380498030732 185.1504695486169,267.3338049803073" fill="#16203C" stroke="#7C9EF5" stroke-width="1"/>
+      <text x="185.1504695486169" y="243.33380498030732" text-anchor="middle" dominant-baseline="central"
+        font-family="Georgia, serif" font-size="16" font-style="italic" font-weight="bold"
+        fill="#7C9EF5">γ<tspan class="ar-tag" font-size="10" font-style="normal" font-weight="normal" dy="2">2</tspan></text></g><g><polygon points="109.03254962674191,162.6432227049167 171.0325496267419,162.6432227049167 140.0325496267419,202.6432227049167" fill="#16203C" stroke="#7C9EF5" stroke-width="1"/>
+      <text x="140.0325496267419" y="178.6432227049167" text-anchor="middle" dominant-baseline="central"
+        font-family="Georgia, serif" font-size="16" font-style="italic" font-weight="bold"
+        fill="#7C9EF5">γ<tspan class="ar-tag" font-size="10" font-style="normal" font-weight="normal" dy="2">2</tspan></text></g><g><circle cx="177.0325496267419" cy="125.6432227049167" r="15" fill="#1C1F23" stroke="#9AA3AC" stroke-width="1"/>
+      <text x="177.0325496267419" y="125.6432227049167" text-anchor="middle" dominant-baseline="central"
+        font-family="Georgia, serif" font-size="16" font-style="italic" font-weight="bold"
+        fill="#9AA3AC">ε</text></g><g><polygon points="395.0725886892419,219.07285679915498 457.0725886892419,219.07285679915498 426.0725886892419,259.072856799155" fill="#16203C" stroke="#7C9EF5" stroke-width="1"/>
+      <text x="426.0725886892419" y="235.07285679915498" text-anchor="middle" dominant-baseline="central"
+        font-family="Georgia, serif" font-size="16" font-style="italic" font-weight="bold"
+        fill="#7C9EF5">γ<tspan class="ar-tag" font-size="10" font-style="normal" font-weight="normal" dy="2">2</tspan></text></g><g><polygon points="340.2650935720544,161.15505589583466 402.2650935720544,161.15505589583466 371.2650935720544,201.15505589583466" fill="#16203C" stroke="#7C9EF5" stroke-width="1"/>
+      <text x="371.2650935720544" y="177.15505589583466" text-anchor="middle" dominant-baseline="central"
+        font-family="Georgia, serif" font-size="16" font-style="italic" font-weight="bold"
+        fill="#7C9EF5">γ<tspan class="ar-tag" font-size="10" font-style="normal" font-weight="normal" dy="2">2</tspan></text></g><g><circle cx="349.1969783376794" cy="117.41833104231904" r="15" fill="#1C1F23" stroke="#9AA3AC" stroke-width="1"/>
+      <text x="349.1969783376794" y="117.41833104231904" text-anchor="middle" dominant-baseline="central"
+        font-family="Georgia, serif" font-size="16" font-style="italic" font-weight="bold"
+        fill="#9AA3AC">ε</text></g><a href="https://github.com/AlanRMA" target="_blank"><text x="557.1938934326172" y="334" text-anchor="end" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="11.5" fill="#6a6a74">created by Alan Roger &#183; github.com/AlanRMA</text></a></svg>

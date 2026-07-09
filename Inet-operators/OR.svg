@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="320" height="326.3790431776828" viewBox="0 0 320 326.3790431776828"><rect x="0" y="0" width="320" height="326.3790431776828" fill="#060608"/><g><rect class="note-body" x="52" y="52" width="138" height="40" rx="6"
+      fill="#1E1B0E" stroke="#C7F07C"/>
+      <text class="note-text" x="62" y="70" font-family="Courier New, monospace" font-size="12" fill="#C7F07C">
+      <tspan x="62" dy="0">OR Operator</tspan>
+      </text></g><line  x1="117.17868158730198" y1="168.37904317768277" x2="116.17868158730198" y2="212.37904317768277" stroke="#F26D6D" stroke-width="2.2"/><g><circle cx="116.67868158730198" cy="190.37904317768277" r="13" fill="#331214" stroke="#F26D6D" stroke-width="1.3"/>
+        <text x="116.67868158730198" y="191.37904317768277" text-anchor="middle" dominant-baseline="central" font-size="13" fill="#F26D6D">↯</text></g><line  x1="102.17868158730198" y1="129.37904317768277" x2="92.98629343187686" y2="120.18665502225765" stroke="#8B8B96" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.7"/>
+        <circle cx="92.98629343187686" cy="120.18665502225765" r="3" fill="#060608" stroke="#8B8B96"/><line  x1="132.17868158730198" y1="129.37904317768277" x2="141.3710697427271" y2="120.18665502225765" stroke="#8B8B96" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.7"/>
+        <circle cx="141.3710697427271" cy="120.18665502225765" r="3" fill="#060608" stroke="#8B8B96"/><line  x1="116.17868158730198" y1="251.37904317768277" x2="116.17868158730198" y2="264.3790431776828" stroke="#8B8B96" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.7"/>
+        <circle cx="116.17868158730198" cy="264.3790431776828" r="3" fill="#060608" stroke="#8B8B96"/><g><polygon points="86.17868158730198,128.37904317768277 148.17868158730198,128.37904317768277 117.17868158730198,168.37904317768277" fill="#16203C" stroke="#7C9EF5" stroke-width="1"/>
+      <text x="117.17868158730198" y="144.37904317768277" text-anchor="middle" dominant-baseline="central"
+        font-family="Georgia, serif" font-size="16" font-style="italic" font-weight="bold"
+        fill="#7C9EF5">γ<tspan class="ar-tag" font-size="10" font-style="normal" font-weight="normal" dy="2">2</tspan></text></g><g><polygon points="90.17868158730198,220.37904317768277 142.17868158730198,220.37904317768277 116.17868158730198,260.3790431776828" fill="#16203C" stroke="#7C9EF5" stroke-width="1" transform="rotate(180 116.17868158730198 236.37904317768277)"/>
+      <text x="116.17868158730198" y="236.37904317768277" text-anchor="middle" dominant-baseline="central"
+        font-family="Georgia, serif" font-size="16" font-style="italic" font-weight="bold"
+        fill="#7C9EF5">γ<tspan class="ar-tag" font-size="10" font-style="normal" font-weight="normal" dy="2">1</tspan></text></g><a href="https://github.com/AlanRMA" target="_blank"><text x="308" y="314.3790431776828" text-anchor="end" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="11.5" fill="#6a6a74">created by Alan Roger &#183; github.com/AlanRMA</text></a></svg>

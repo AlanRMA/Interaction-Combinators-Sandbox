@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="320" height="344.6867590559362" viewBox="0 0 320 344.6867590559362"><rect x="0" y="0" width="320" height="344.6867590559362" fill="#060608"/><g><rect class="note-body" x="52" y="52" width="134" height="40" rx="6"
+      fill="#1E1B0E" stroke="#C7F07C"/>
+      <text class="note-text" x="62" y="70" font-family="Courier New, monospace" font-size="12" fill="#C7F07C">
+      <tspan x="62" dy="0">Not Operator</tspan>
+      </text></g><line  x1="132.70669432732439" y1="234.6867590559362" x2="130.70669432732439" y2="171.6867590559362" stroke="#C9C9D2" stroke-width="1.4"/><line  x1="102.70669432732439" y1="234.6867590559362" x2="100.70669432732439" y2="171.6867590559362" stroke="#C9C9D2" stroke-width="1.4"/><line  x1="117.70669432732439" y1="273.6867590559362" x2="117.70669432732439" y2="286.6867590559362" stroke="#8B8B96" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.7"/>
+        <circle cx="117.70669432732439" cy="286.6867590559362" r="3" fill="#060608" stroke="#8B8B96"/><line  x1="115.70669432732439" y1="132.6867590559362" x2="115.70669432732439" y2="119.6867590559362" stroke="#8B8B96" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.7"/>
+        <circle cx="115.70669432732439" cy="119.6867590559362" r="3" fill="#060608" stroke="#8B8B96"/><g><polygon points="86.70669432732439,233.6867590559362 148.70669432732439,233.6867590559362 117.70669432732439,273.6867590559362" fill="#16203C" stroke="#7C9EF5" stroke-width="1"/>
+      <text x="117.70669432732439" y="249.6867590559362" text-anchor="middle" dominant-baseline="central"
+        font-family="Georgia, serif" font-size="16" font-style="italic" font-weight="bold"
+        fill="#7C9EF5">γ<tspan class="ar-tag" font-size="10" font-style="normal" font-weight="normal" dy="2">2</tspan></text></g><g><polygon points="84.70669432732439,140.6867590559362 146.70669432732439,140.6867590559362 115.70669432732439,180.6867590559362" fill="#16203C" stroke="#7C9EF5" stroke-width="1" transform="rotate(180 115.70669432732439 156.6867590559362)"/>
+      <text x="115.70669432732439" y="156.6867590559362" text-anchor="middle" dominant-baseline="central"
+        font-family="Georgia, serif" font-size="16" font-style="italic" font-weight="bold"
+        fill="#7C9EF5">γ<tspan class="ar-tag" font-size="10" font-style="normal" font-weight="normal" dy="2">2</tspan></text></g><a href="https://github.com/AlanRMA" target="_blank"><text x="308" y="332.6867590559362" text-anchor="end" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="11.5" fill="#6a6a74">created by Alan Roger &#183; github.com/AlanRMA</text></a></svg>
